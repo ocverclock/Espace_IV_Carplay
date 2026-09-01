@@ -179,6 +179,24 @@ Cela évite :
 - un firmware propriétaire supplémentaire ;
 - une boîte supplémentaire dans le véhicule.
 
+[CONFIRME PAR LIVI]
+
+Pour CarPlay natif, le coprocesseur MFi est une dépendance matérielle obligatoire.
+
+LIVI peut être installé et son interface, son affichage et les entrées clavier/HID peuvent être testés sans MFi, mais la connexion iPhone et la validation réelle de CarPlay natif ne sont pas possibles sans coprocesseur MFi fonctionnel relié en I²C.
+
+Source technique :
+- documentation officielle LIVI — section MFi Authentication :
+  `https://github.com/f-io/LIVI/blob/main/README.md#mfi-authentication`
+
+Conséquence pour ce projet :
+
+- le MFi de laboratoire doit être disponible avant les tests réels iPhone / CarPlay ;
+- Roole Map, l’audio CarPlay, les appels, le microphone et Siri ne peuvent être considérés comme validables qu’après intégration du MFi ;
+- ne jamais planifier « validation CarPlay native puis achat MFi ».
+
+Cette correction est formalisée par la décision `D012` dans `docs/DECISIONS.md`.
+
 [A VERIFIER AVANT PCB]
 - disponibilité réelle du composant ;
 - schéma d’application exact ;
@@ -732,8 +750,9 @@ Prévoir un watchdog afin que la caméra reste disponible même si LIVI rencontr
 
 - pièces de commandes Renault d’occasion : achetées ;
 - écran 7" ;
-- validation Raspberry Pi + LIVI ;
-- MFi ;
+- validation Raspberry Pi + LIVI hors CarPlay ;
+- MFi de laboratoire ;
+- validation CarPlay natif / Roole Map ;
 - audio ;
 - caméra de recul.
 
@@ -773,12 +792,12 @@ Le projet ne doit pas dépenser 150 € dans un outil OBD avant d’avoir valid�
 
 - écran 7" IPS non tactile suffisamment lumineux ;
 - RP2040-Zero pour laboratoire ;
+- MFi de laboratoire pour validation CarPlay native ;
+- composants minimum nécessaires à son alimentation et à sa liaison I²C ;
 - petit matériel de mesure / fils / crochets de test si nécessaire.
 
 ### A acheter après validation
 
-- MFi `MFI343S00177-L`
-- composants/PCB MFi ;
 - 2 interfaces MCP2518FD + transceiver pour prototype ;
 - caméra de recul ;
 - interface vidéo associée ;
@@ -824,11 +843,17 @@ Livrable :
 1. Pi 4 ;
 2. LIVI ;
 3. écran HDMI temporaire ;
-4. iPhone ;
-5. validation Roole Map ;
-6. validation audio ;
-7. validation microphone ;
-8. validation navigation au clavier/HID.
+4. validation démarrage / affichage / navigation clavier-HID hors CarPlay ;
+5. intégrer un MFi de laboratoire ;
+6. valider alimentation, liaison I²C et détection MFi par LIVI ;
+7. connecter l’iPhone ;
+8. valider CarPlay natif ;
+9. valider Roole Map ;
+10. valider commandes HID dans CarPlay ;
+11. valider audio ;
+12. valider microphone ;
+13. valider Siri ;
+14. valider reconnexion après reboot.
 
 Livrable :
 `docs/LIVI_CARPLAY_SETUP.md`
@@ -1019,6 +1044,8 @@ Ordre de confiance :
 - choix iPhone / CarPlay / Roole Map : défini ;
 - LIVI : piste retenue ;
 - MFi direct : piste retenue ;
+- MFi de laboratoire : requis avant validation iPhone / CarPlay natif ;
+- tests LIVI sans MFi : limités à l’application, l’affichage et les entrées locales/clavier/HID ;
 - commande centrale de laboratoire : achetée ;
 - commande au volant de laboratoire : achetée ;
 - écran 7" : décision prise, modèle à choisir ;
