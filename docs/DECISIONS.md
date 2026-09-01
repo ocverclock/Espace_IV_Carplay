@@ -44,3 +44,9 @@
 ## D011 — Caméra de recul
 **Décision :** fait partie du cahier des charges de base.  
 **Raison :** forte valeur d’usage ; doit fonctionner sans téléphone.
+
+## D012 — MFi requis avant validation CarPlay native
+**Décision :** intégrer et valider un coprocesseur MFi de laboratoire avant de considérer la connexion iPhone / CarPlay native comme testable avec LIVI.  
+**Raison :** le README officiel de LIVI indique que CarPlay natif nécessite un coprocesseur d’authentification MFi matériel, relié en I²C, et que sans ce coprocesseur CarPlay natif est indisponible.  
+**Source :** https://github.com/f-io/LIVI/blob/main/README.md#mfi-authentication  
+**Impact :** on peut tester LIVI, l’affichage et les entrées HID sans MFi, mais pas valider réellement CarPlay, Roole Map, l’audio CarPlay, les appels, le micro ou Siri. Cette décision supersède toute formulation plus ancienne suggérant « valider CarPlay puis acheter le MFi » ou classant le MFi uniquement après la validation du prototype CarPlay.
