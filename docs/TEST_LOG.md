@@ -5,7 +5,7 @@ Journal chronologique des mesures.
 ## 2026-08-31 — XTOOL A30M
 
 - connexion Bluetooth Linux réussie ;
-- périphérique : `A30M-WE06VF7`
+- périphérique : `A30M-WE86VF7`
 - Bluetooth Serial Port Profile présent ;
 - RFCOMM channel observé : 3 ;
 - commandes ELM `ATI/ATDP` non exploitables ;
