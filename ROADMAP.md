@@ -19,13 +19,18 @@
 
 ## M2 — CarPlay sur établi
 - [ ] installer LIVI
-- [ ] valider affichage
+- [ ] valider affichage HDMI
+- [ ] valider commandes clavier/HID hors CarPlay
+- [ ] intégrer et valider un MFi de laboratoire
+- [ ] connecter l’iPhone et valider CarPlay natif
 - [ ] valider Roole Map
-- [ ] valider commandes clavier/HID
+- [ ] valider commandes clavier/HID dans CarPlay
 - [ ] valider audio
 - [ ] valider micro
 - [ ] valider Siri
-- [ ] valider MFi direct
+- [ ] valider reconnexion après reboot
+
+> Le MFi est un prérequis à la validation réelle de CarPlay natif. Ne pas planifier « validation CarPlay puis achat MFi ».
 
 ## M3 — Écran et façade
 - [ ] choisir écran 7"

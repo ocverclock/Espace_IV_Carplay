@@ -32,6 +32,23 @@ Avant de proposer une modification matérielle ou logicielle :
 
 Ne pas repartir de zéro et ne pas réintroduire une solution déjà écartée sans raison nouvelle.
 
+## Correction importante — ordre MFi / CarPlay
+
+La décision `D012` est prioritaire sur toute formulation plus ancienne du dépôt qui pourrait laisser penser que le MFi peut être acheté seulement après validation de CarPlay.
+
+Le README officiel de LIVI indique que CarPlay natif nécessite un coprocesseur d’authentification MFi matériel. Sans ce coprocesseur, CarPlay natif est indisponible.
+
+Source :
+- https://github.com/f-io/LIVI/blob/main/README.md#mfi-authentication
+
+Ordre à respecter :
+
+1. LIVI, affichage HDMI et navigation clavier/HID peuvent être préparés sans MFi ;
+2. un coprocesseur MFi de laboratoire doit ensuite être intégré et validé ;
+3. seulement après cela, valider réellement iPhone, CarPlay, Roole Map, audio CarPlay, appels, micro, Siri et reconnexion.
+
+Ne jamais planifier « validation CarPlay native puis achat MFi ».
+
 ## Points importants au checkpoint initial
 
 - Raspberry Pi 4 déjà disponible.
@@ -43,6 +60,7 @@ Ne pas repartir de zéro et ne pas réintroduire une solution déjà écartée s
 - commande volant `7701049643 / 34442201AF` achetée pour laboratoire.
 - la molette du commodo doit être récupérée, pas abandonnée.
 - MFi direct via `MFI343S00177-L` est la piste privilégiée.
+- un MFi fonctionnel est requis avant validation CarPlay native avec LIVI.
 - Carlinkit n’est pas la cible finale.
 - RP2040 prévu pour les commandes physiques.
 - double CAN matériel prévu sur le PCB final.
