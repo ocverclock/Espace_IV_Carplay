@@ -1,0 +1,21 @@
+# Python
+__pycache__/
+*.py[cod]
+.venv/
+venv/
+
+# IDE
+.vscode/
+.idea/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Captures lourdes / temporaires
+*.pcap
+*.pcapng
+*.log.tmp
+
+# CAD generated/export caches
+*.FCStd1
