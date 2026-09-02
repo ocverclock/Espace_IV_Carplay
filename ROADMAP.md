@@ -5,6 +5,8 @@
 - [x] source de vérité
 - [x] pièces de commande achetées
 - [x] structure GitHub
+- [x] ordre MFi / CarPlay corrigé
+- [x] câblage MFi documenté
 
 ## M1 — Reverse engineering commandes
 - [ ] recevoir `CSW-2000R`
@@ -17,20 +19,39 @@
 - [ ] protocole CSW identifié ou décision de bypass
 - [ ] prototype USB HID sur RP2040
 
-## M2 — CarPlay sur établi
+## M2 — LIVI / CarPlay sur établi
+
+### M2.1 — plateforme
+- [ ] installer Raspberry Pi OS / Debian 13 Trixie 64 bits
+- [ ] vérifier arm64
 - [ ] installer LIVI
 - [ ] valider affichage HDMI
+- [ ] valider démarrage automatique
 - [ ] valider commandes clavier/HID hors CarPlay
-- [ ] intégrer et valider un MFi de laboratoire
-- [ ] connecter l’iPhone et valider CarPlay natif
+
+### M2.2 — MFi
+- [ ] assembler prototype `MFI343S00177-L`
+- [ ] vérifier orientation / footprint
+- [ ] valider load-switch 3.3 V
+- [ ] valider GPIO21 → EN
+- [ ] mesurer `MFI_VCC`
+- [ ] mesurer courant MFi
+- [ ] valider `/dev/i2c-2`
+- [ ] détecter `0x10`
+- [ ] vérifier logs LIVI
+
+### M2.3 — CarPlay
+- [ ] connecter l’iPhone en filaire
+- [ ] valider CarPlay natif
 - [ ] valider Roole Map
 - [ ] valider commandes clavier/HID dans CarPlay
 - [ ] valider audio
 - [ ] valider micro
 - [ ] valider Siri
 - [ ] valider reconnexion après reboot
+- [ ] valider CarPlay sans fil ensuite
 
-> Le MFi est un prérequis à la validation réelle de CarPlay natif. Ne pas planifier « validation CarPlay puis achat MFi ».
+> Le MFi est un prérequis à la validation réelle de CarPlay natif.
 
 ## M3 — Écran et façade
 - [ ] choisir écran 7"
@@ -46,6 +67,7 @@
 - [ ] récupérer signal reverse
 - [ ] bascule automatique < 1 s si possible
 - [ ] restauration automatique CarPlay
+- [ ] vérifier fonctionnement sans iPhone
 
 ## M5 — Audio / alimentation
 - [ ] AUX Renault
@@ -57,14 +79,25 @@
 - [ ] consommation véhicule arrêté
 
 ## M6 — PCB V1
+
+**Gate avant lancement PCB :**
+- [ ] commandes Renault mesurées
+- [ ] MFi validé sur banc
+- [ ] pinout / footprint MFi revérifiés
+- [ ] écran choisi
+- [ ] stratégie alimentation validée
+
+Contenu :
 - [ ] RP2040
 - [ ] MFi
+- [ ] load-switch MFi
 - [ ] double CAN
 - [ ] K-Line optionnelle
 - [ ] reverse
 - [ ] ACC
 - [ ] protections
 - [ ] connecteurs
+- [ ] points de test
 
 ## M7 — CAN Renault
 - [ ] topologie bus
