@@ -1,1061 +1,588 @@
 # Espace IV Modernisation Multimédia — PROJECT_STATE
 
-Dernière mise à jour : 2026-09-01
+Dernière mise à jour : 2026-09-02
 
-## 1. But du projet
+Ce fichier est le **checkpoint global et la source de vérité principale** du projet.
 
-Moderniser le système multimédia d’un Renault Espace IV en conservant au maximum l’intégration d’origine :
+Il ne doit pas contenir tous les détails techniques : ceux-ci vivent dans les documents de sous-système. Ici doivent rester l’architecture, les décisions actives, les états mesurés et les prochaines étapes.
 
-- remplacer l’ancien GPS Carminat par une interface moderne ;
-- utiliser un Raspberry Pi 4 déjà disponible ;
-- afficher Apple CarPlay sur un nouvel écran 7" non tactile ;
-- utiliser un iPhone comme téléphone principal ;
-- utiliser Roole Map via CarPlay pour la navigation ;
-- conserver et réutiliser la commande centrale Renault ;
-- conserver et réutiliser la commande multimédia au volant, y compris sa molette ;
-- conserver les appels mains libres ;
-- intégrer une caméra de recul avec bascule automatique ;
-- préparer l’accès futur aux données véhicule via CAN : température, turbo, régime, FAP, etc. ;
-- garder une intégration propre, réversible autant que possible, sans gros boîtier permanent sur la prise OBD.
+## 1. Objectif
 
-Le projet est volontairement construit par étapes pour éviter d’acheter du matériel coûteux avant d’avoir validé l’architecture.
+Moderniser le système multimédia d’un Renault Espace IV CNC/Xanavi en conservant une intégration OEM+ :
 
----
+- Raspberry Pi 4 ;
+- Apple CarPlay natif avec iPhone ;
+- Roole Map via CarPlay ;
+- écran 7" non tactile ;
+- commandes Renault d’origine réutilisées ;
+- appels mains libres ;
+- caméra de recul automatique ;
+- futur dashboard véhicule via CAN ;
+- installation propre et réversible ;
+- prise OBD laissée libre dans l’installation finale.
 
-## 2. Véhicule et système d’origine
+## 2. Hiérarchie documentaire
 
-### Système multimédia
+Ordre de lecture pour reprendre le projet :
 
-Le véhicule est équipé du système Renault Carminat Navigation & Communication / CNC de génération Xanavi.
+1. `PROJECT_STATE.md`
+2. `docs/TEST_LOG.md`
+3. `docs/DECISIONS.md`
+4. `ROADMAP.md`
+5. document du sous-système travaillé
+6. `captures/` / `references/`
 
-Éléments identifiés :
+Hiérarchie de confiance :
 
-- écran GPS d’origine au tableau de bord ;
-- unité navigation/GPS ancienne, destinée à être abandonnée fonctionnellement ;
-- autoradio / système audio Renault d’origine ;
-- commande centrale multimédia séparée ;
-- commande multimédia au volant.
+1. mesures sur notre véhicule / nos pièces ;
+2. documentation constructeur Renault ;
+3. datasheets fabricants ;
+4. documentation/code officiel des projets utilisés ;
+5. plusieurs sources tierces indépendantes concordantes ;
+6. reverse engineering public ;
+7. forums/commentaires isolés ;
+8. hypothèses.
 
-### Commande centrale
+Une mesure réelle remplace une hypothèse ancienne.
 
-Référence achetée pour reverse engineering :
+## 3. Véhicule / système d’origine
 
-- Renault : `8200326970`
-- modèle : `CSW-2000R`
-- fabricant : Xanavi Informatics Corporation
-- connecteur visible : 6 voies
-- joystick central : famille ALPS, déjà démontée/réparée dans plusieurs publications en ligne.
+Système : Renault Carminat Navigation & Communication / CNC, génération Xanavi.
 
-Etat du reverse engineering :
+Éléments conservés autant que possible :
 
-- [CONFIRME] la pièce est démontable et réparée par des particuliers ;
-- [CONFIRME] elle contient sa propre électronique ;
-- [A VERIFIER] protocole de sortie exact ;
-- [A VERIFIER] alimentation exacte ;
-- [A VERIFIER] rôle de chacune des 6 broches ;
-- [A VERIFIER] CAN, série, protocole propriétaire ou autre.
+- système audio Renault ;
+- commande centrale ;
+- commande multimédia au volant ;
+- ergonomie visuelle OEM.
 
-Ne pas supposer que le CSW-2000R est CAN tant que cela n’a pas été mesuré.
+L’ancienne navigation est destinée à être abandonnée fonctionnellement.
 
-### Commande multimédia au volant
+## 4. Matériel déjà disponible / acheté
 
-Référence achetée :
+### Disponible
 
-- Renault : `7701049643`
-- marquage visible sur l’exemplaire acheté : `34442201AF`
-- connecteur : 6 fils / 6 voies.
+- Raspberry Pi 4 ;
+- PC Linux ;
+- imprimante 3D ;
+- XTOOL A30M pour diagnostic classique ;
+- ancien ELM327 Wi-Fi non retenu pour le projet.
 
-Etat des connaissances :
+### Acheté pour reverse engineering
 
-- [FORTEMENT PROBABLE] commande passive à contacts / matrice ;
-- des adaptations existantes ont récupéré les boutons ;
-- la molette n’est généralement pas récupérée dans les adaptations simples vers autoradio Android ;
-- cela ne signifie pas qu’elle est inexploitable : elle semble demander un décodage de séquence de contacts plutôt qu’une simple valeur résistive.
+Commande centrale :
 
-Objectif : reverse engineering complet, molette comprise.
+```text
+Renault 8200326970
+CSW-2000R
+Xanavi Informatics Corporation
+connecteur 6 voies
+```
 
----
+Commande au volant :
 
-## 3. Pièces déjà achetées
+```text
+Renault 7701049643
+34442201AF
+connecteur 6 voies
+```
 
-Achat Ovoko effectué :
+Ces pièces sont destinées au laboratoire pour éviter de risquer les pièces du véhicule.
 
-1. Commande multimédia au volant
-   - `7701049643`
-   - `34442201AF`
+## 5. Architecture cible
 
-2. Commande centrale multimédia
-   - `8200326970`
-   - `CSW-2000R`
+```text
+                                 iPhone
+                                   │
+                          CarPlay filaire/Wi-Fi
+                                   │
+                          ┌────────▼─────────┐
+                          │ Raspberry Pi 4   │
+                          │ Trixie + LIVI    │
+                          └───┬──────┬───────┘
+                              │      │
+                            HDMI    Audio
+                              │      │
+                          écran 7"   └──► audio Renault
 
-Ces pièces sont destinées au laboratoire afin de pouvoir les ouvrir, mesurer et modifier sans immobiliser ni risquer les pièces fonctionnelles du véhicule.
+                         GPIO / USB / SPI
+                                   │
+        ┌──────────────────────────▼─────────────────────────┐
+        │             Espace IV Interface Board             │
+        │                                                   │
+        │ RP2040                                            │
+        │  ├─ commande au volant                            │
+        │  ├─ CSW-2000R                                     │
+        │  ├─ reverse                                       │
+        │  └─ ACC / illumination                            │
+        │                                                   │
+        │ 3.3 V → load-switch → MFI343S00177-L              │
+        │ GPIO21 → EN                                       │
+        │ GPIO19 SDA / GPIO26 SCL                           │
+        │                                                   │
+        │ MCP2518FD #1 + transceiver → CAN véhicule         │
+        │ MCP2518FD #2 + transceiver → CAN secondaire       │
+        │ L9637D optionnel → K-Line                         │
+        └───────────────────────────────────────────────────┘
+```
 
----
+## 6. Raspberry Pi / LIVI
 
-## 4. Écran
+Décision active :
 
-### Décision actuelle
+- Raspberry Pi 4 ;
+- Raspberry Pi OS / Debian 13 Trixie 64 bits ;
+- LIVI ;
+- cible kiosk automobile à terme.
 
-Le nouvel écran sera :
+Raison : LIVI actuel requiert OpenGL ES 3.x et documente Trixie pour Pi 4/CM4/Pi 5/CM5.
+
+Décision : `D013`.
+
+Document : `docs/LIVI_CARPLAY_SETUP.md`.
+
+## 7. CarPlay / MFi
+
+### Règle fondamentale
+
+CarPlay natif LIVI nécessite un coprocesseur MFi physique.
+
+Ordre correct :
+
+```text
+Pi + Trixie
+→ LIVI
+→ affichage / clavier / HID
+→ prototype MFi
+→ détection I²C
+→ CarPlay filaire
+→ Roole Map / audio / micro / Siri
+→ CarPlay sans fil
+```
+
+Il est incorrect de planifier « valider CarPlay puis acheter le MFi ».
+
+Décision : `D012`.
+
+### Composant cible
+
+```text
+Microchip MFI343S00177-L
+Authentication Coprocessor 3.0
+LCSC C33770534
+```
+
+### Configuration LIVI actuelle
+
+```text
+I²C bus = 2
+SDA = GPIO19
+SCL = GPIO26
+Power control = GPIO21
+```
+
+Overlay LIVI actuel :
+
+```ini
+dtoverlay=i2c-gpio,bus=2,i2c_gpio_sda=19,i2c_gpio_scl=26,i2c_gpio_delay_us=5
+```
+
+### Architecture alimentation MFi
+
+Le schéma de référence n’utilise pas GPIO21 pour alimenter directement VCC.
+
+```text
+Pi 3.3 V → load-switch → MFI_VCC
+GPIO21 → EN du load-switch
+```
+
+Les pull-up SDA/SCL vont vers `MFI_VCC` commuté.
+
+Décision : `D014`.
+
+### Pinout de travail
+
+Recoupé par plusieurs schémas publics :
+
+```text
+1 GND
+2 NC
+3 NC
+4 GND
+5 SDA
+6 SCL
+7 GND
+8 VCC
+9 PAD/GND
+```
+
+Ce pinout n’est **pas encore MEASURED** sur notre prototype.
+
+Avant PCB : revérifier orientation/footprint fournisseur et contrôler la première carte hors tension.
+
+Décision : `D015`.
+
+Adresse I²C CP3.0 attendue selon WACResearch :
+
+```text
+0x10
+```
+
+À confirmer sur notre propre composant.
+
+Document : `docs/MFI_WIRING.md`.
+
+## 8. Écran
+
+Décisions :
 
 - 7 pouces ;
 - non tactile ;
-- IPS de préférence ;
-- HDMI de préférence ;
-- luminosité élevée pour usage automobile ;
-- piloté par le Raspberry Pi 4.
+- IPS préféré ;
+- HDMI préféré ;
+- luminosité élevée ;
+- nouvelle façade imprimée 3D.
 
-Le tactile n’est pas nécessaire : l’écran est trop éloigné du conducteur pour être utilisé confortablement à la main.
+L’ancienne fenêtre visible d’environ `130 × 70 mm` n’est plus considérée comme limite définitive.
 
-### Dimensions connues
+Critères avant achat :
 
-Fenêtre visible actuelle approximative :
-
-- largeur : `130 mm`
-- hauteur : `70 mm`
-
-Cette fenêtre ne constitue plus la limite définitive.
-
-Décision : refaire le cache / entourage d’écran en impression 3D pour exploiter correctement toute la surface du nouvel écran 7".
-
-L’espace disponible derrière l’écran d’origine est considéré comme important, mais les dimensions internes exactes seront relevées seulement au moment du démontage.
-
-### Critères avant achat de l’écran
-
-Ne pas commander uniquement sur la diagonale.
-
-Vérifier :
-
-- dimensions extérieures du module ;
-- position des connecteurs HDMI / alimentation ;
-- luminosité réelle ;
+- dimensions externes ;
+- connecteurs ;
+- luminosité ;
 - angle de vision ;
 - consommation ;
-- température de fonctionnement ;
-- possibilité de désactiver proprement le rétroéclairage ;
-- résolution minimale cible : 1024×600 ;
-- idéalement résolution supérieure si LIVI/CarPlay la gère proprement.
+- température ;
+- résolution ;
+- possibilité de gérer proprement le rétroéclairage.
 
-Objectif de luminosité : privilégier 500 nits ou plus si le prix reste raisonnable.
+Cible de luminosité : idéalement ≥500 nits si prix raisonnable.
 
----
+Document : `docs/DISPLAY.md`.
 
-## 5. Apple CarPlay
+## 9. Commande au volant
 
-### Contraintes utilisateur
+Référence : `7701049643 / 34442201AF`.
 
-- téléphone : iPhone ;
-- navigation principale : Roole Map ;
-- Roole Map est utilisé via Apple CarPlay ;
-- Android Auto n’est donc pas l’objectif principal.
+État :
 
-### Logiciel retenu
+- pièce achetée ;
+- reverse engineering à faire ;
+- probablement passive / contacts-matrice ;
+- molette obligatoire dans la reproduction.
 
-Base envisagée :
+Ne pas supposer son codage sans mesure.
 
-- Raspberry Pi 4 ;
-- Linux ;
-- LIVI comme head-unit CarPlay.
+Plan :
 
-Le Raspberry Pi 4 est préféré car il est déjà disponible et son décodage vidéo H.264 est adapté à ce type de flux.
+1. inspection ;
+2. tester les 15 couples de broches ;
+3. relever tous les boutons ;
+4. décoder la séquence de la molette ;
+5. prototype RP2040 USB HID.
 
-### Authentification Apple / MFi
+Documents :
 
-Objectif final : ne pas utiliser de boîtier Carlinkit si cela n’apporte pas de valeur.
+- `docs/STEERING_REMOTE.md`
+- `docs/CONTROLS_REVERSE_ENGINEERING.md`
 
-Composant retenu comme piste principale :
+## 10. Commande centrale CSW-2000R
 
-- Microchip `MFI343S00177-L`
-- CarPlay Authentication Coprocessor 3.0
-- boîtier DFN8 2×3 mm
-- référence LCSC rencontrée : `C33770534`
+Référence : `8200326970 / CSW-2000R`.
 
-L’idée est de monter directement ce composant sur notre PCB et de le raccorder au Raspberry Pi / LIVI par I²C.
+État :
 
-Cela évite :
+- pièce achetée ;
+- électronique interne confirmée ;
+- protocole, alimentation et pinout inconnus ;
+- ne pas supposer CAN.
 
-- le boîtier Carlinkit ;
-- une couche USB supplémentaire ;
-- un firmware propriétaire supplémentaire ;
-- une boîte supplémentaire dans le véhicule.
+Plan :
 
-[CONFIRME PAR LIVI]
+1. ouvrir ;
+2. photographier PCB ;
+3. relever circuits intégrés ;
+4. continuité des 6 broches ;
+5. identifier alimentation ;
+6. alimentation labo limitée en courant ;
+7. analyser protocole.
 
-Pour CarPlay natif, le coprocesseur MFi est une dépendance matérielle obligatoire.
+Fallback : conserver mécanique/joystick ALPS et remplacer l’électronique interne par RP2040 si nécessaire.
 
-LIVI peut être installé et son interface, son affichage et les entrées clavier/HID peuvent être testés sans MFi, mais la connexion iPhone et la validation réelle de CarPlay natif ne sont pas possibles sans coprocesseur MFi fonctionnel relié en I²C.
-
-Source technique :
-- documentation officielle LIVI — section MFi Authentication :
-  `https://github.com/f-io/LIVI/blob/main/README.md#mfi-authentication`
-
-Conséquence pour ce projet :
-
-- le MFi de laboratoire doit être disponible avant les tests réels iPhone / CarPlay ;
-- Roole Map, l’audio CarPlay, les appels, le microphone et Siri ne peuvent être considérés comme validables qu’après intégration du MFi ;
-- ne jamais planifier « validation CarPlay native puis achat MFi ».
-
-Cette correction est formalisée par la décision `D012` dans `docs/DECISIONS.md`.
-
-[A VERIFIER AVANT PCB]
-- disponibilité réelle du composant ;
-- schéma d’application exact ;
-- tension d’alimentation ;
-- résistances de pull-up I²C ;
-- GPIO éventuelle de power/reset demandée par LIVI ;
-- contraintes MFi spécifiques.
-
----
-
-## 6. Appels mains libres
-
-Objectif : conserver les appels téléphoniques via CarPlay.
-
-Architecture cible :
-
-iPhone
-→ CarPlay
-→ LIVI / Raspberry Pi
-→ sortie audio vers système Renault
-→ haut-parleurs du véhicule
-
-Microphone
-→ interface audio
-→ Raspberry Pi
-→ CarPlay
-→ iPhone
-
-Priorité :
-
-1. essayer de réutiliser le microphone Renault d’origine ;
-2. si son câblage ou ses caractéristiques compliquent le projet, utiliser un microphone automobile externe discret.
-
-La sélection des contacts peut être faite par :
-
-- Siri ;
-- interface Téléphone de CarPlay ;
-- commandes physiques Renault une fois décodées.
-
----
-
-## 7. Caméra de recul
-
-Nouvelle exigence intégrée au projet.
-
-Objectif :
-
-- affichage automatique de la caméra lorsque la marche arrière est engagée ;
-- retour automatique à CarPlay après sortie de marche arrière ;
-- latence faible ;
-- fonctionnement indépendant du téléphone.
-
-Architecture générale :
-
-caméra arrière
-→ interface vidéo
-→ Raspberry Pi
-→ écran 7"
-
-Signal marche arrière
-→ entrée protégée
-→ RP2040 ou entrée dédiée
-→ application / service Linux
-→ bascule automatique vers la caméra.
-
-### Décisions encore ouvertes
-
-Type de caméra :
-
-- caméra analogique CVBS ;
-- caméra AHD ;
-- caméra USB UVC ;
-- autre.
-
-Pour une voiture, une caméra analogique/AHD avec câble long est probablement plus pratique qu’une caméra CSI Raspberry Pi, mais cela reste à arbitrer.
-
-Critères :
-
-- faible latence ;
-- bonne vision nocturne ;
-- étanchéité ;
-- alimentation automobile ;
-- disponibilité d’un convertisseur vidéo Linux stable ;
-- comportement au démarrage ;
-- absence d’écran bleu ou de délai long lors de l’enclenchement de la marche arrière.
-
-Objectif cible de bascule : idéalement moins de 1 seconde.
-
----
-
-## 8. Commande au volant — plan de reverse engineering
-
-La commande achetée sera étudiée sur établi avant utilisation du RP2040.
-
-### Etape 1 — inspection
-
-- photographier recto / verso ;
-- repérer les 6 broches ;
-- relever les couleurs des fils si le faisceau est présent ;
-- vérifier s’il existe réellement de l’électronique ou uniquement des pistes/contacts.
-
-### Etape 2 — multimètre
-
-Tester les 15 couples possibles entre 6 broches.
-
-Pour chaque fonction :
-
-- repos ;
-- volume + ;
-- volume - ;
-- mute ;
-- source ;
-- boutons divers ;
-- molette un cran dans un sens ;
-- molette plusieurs crans ;
-- molette dans l’autre sens.
-
-Créer un tableau broche/broche/action.
-
-### Etape 3 — molette
-
-La molette doit être traitée comme un encodeur ou une séquence de contacts.
-
-Rechercher des séquences du type :
-
-- A ;
-- A+B ;
-- B ;
-- repos ;
-
-ou tout autre ordre répétitif.
-
-Objectif : déterminer :
-
-- sens ;
-- nombre de crans ;
-- rebond mécanique ;
-- fréquence maximale réaliste.
-
-### Etape 4 — RP2040
-
-Une fois le comportement connu, le RP2040 pourra :
-
-- scanner la matrice ;
-- filtrer les rebonds ;
-- décoder la molette ;
-- produire des événements USB HID.
-
-Exemples futurs :
-
-- volume + → `KEY_VOLUMEUP`
-- volume - → `KEY_VOLUMEDOWN`
-- molette + → next / scroll +
-- molette - → previous / scroll -
-- mute → `KEY_MUTE`
-
----
-
-## 9. Commande centrale CSW-2000R — plan de reverse engineering
-
-Ne pas brancher directement les 6 broches au RP2040.
-
-### Etape 1 — ouverture
-
-- photos haute résolution des deux faces du PCB ;
-- relever toutes les références de circuits intégrés ;
-- identifier régulateurs, transistors, protections, éventuels transceivers CAN/UART.
-
-### Etape 2 — continuité
-
-Suivre les 6 broches du connecteur :
-
-- alimentation ;
-- masse ;
-- éclairage ;
-- réveil ;
-- données éventuelles ;
-- autre.
-
-### Etape 3 — recherche documentaire
-
-Pour chaque circuit intégré identifié :
-
-- récupérer datasheet ;
-- déterminer sa fonction ;
-- comparer avec les pistes du PCB.
-
-### Etape 4 — alimentation sur établi
-
-Seulement après identification des alimentations.
-
-Utiliser :
-
-- alimentation de laboratoire ;
-- limitation de courant ;
-- montée progressive ;
-- surveillance consommation.
-
-### Etape 5 — protocole
-
-Selon le résultat :
-
-- contacts directs → RP2040 ;
-- UART → analyseur logique / UART ;
-- CAN → transceiver CAN ;
-- autre série → oscilloscope/analyseur logique ;
-- protocole propriétaire simple → décodage maison.
-
-### Solution de secours
-
-Si l’électronique d’origine est trop compliquée :
-
-- garder toute la mécanique Renault ;
-- lire directement le joystick ALPS et les boutons ;
-- utiliser le RP2040 comme nouvelle électronique interne.
-
-Cette solution garantit que la commande centrale restera exploitable même si son protocole d’origine n’est pas décodé.
-
----
-
-## 10. Mapping fonctionnel visé
-
-Mapping provisoire, à adapter après tests LIVI :
-
-- `MAP 2D/3D` → CarPlay / Roole Map
-- `INFO/ROUTE` → dashboard véhicule / CAN
-- `MENU/SET` → menu système
-- `BACK` → retour
-- `DEST/HOME` → accueil / navigation
-- `REPEAT/MUTE` → mute ou fonction média
-- `LIGHT/DARK` → mode jour/nuit / luminosité
-- joystick directionnel → navigation UI
-- rotation molette centrale → déplacement / suivant-précédent
-- clic molette → validation
-- commande au volant → volume / média / navigation
-- appui long sur une commande à choisir → Siri
-
----
+Document : `docs/CSW2000R.md`.
 
 ## 11. RP2040
 
-Le RP2040 n’est pas le Raspberry Pi.
-
-Rôle prévu :
-
-- lecture temps réel des commandes physiques ;
-- gestion des rebonds ;
-- décodage de la molette au volant ;
-- éventuellement décodage direct du CSW si nécessaire ;
-- lecture signal marche arrière ;
-- éventuellement ACC / illumination ;
-- présentation au Raspberry Pi comme périphérique USB HID.
-
-Pour le développement, des modules RP2040-Zero peu coûteux sont suffisants.
-
-Pour la version finale, le RP2040 pourra être intégré directement au PCB principal.
-
-Le RP2040 ne sera pas utilisé comme contrôleur CAN principal.
-
----
-
-## 12. CAN véhicule
-
-### Objectif final
-
-Pouvoir récupérer des données telles que :
-
-- température liquide de refroidissement ;
-- régime moteur ;
-- vitesse ;
-- pression admission ;
-- pression turbo ;
-- éventuellement pression turbo demandée/réelle ;
-- pression rail ;
-- FAP ;
-- EGR ;
-- autres paramètres Renault accessibles.
-
-### Etat actuel
-
-Un XTOOL A30M Bluetooth a été testé sous Linux.
-
-Résultat :
-
-- Bluetooth SPP présent ;
-- mais protocole XTOOL propriétaire ;
-- ce n’est pas un ELM327 exploitable directement par PyRen.
-
-Un ancien ELM327 Wi-Fi a également été testé :
-
-- IP : `192.168.0.10`
-- TCP : `35000`
-- `ATI` → `ELM327 v1.5`
-- `ATDP` → `ISO 15765-4 (CAN 11/500)`
-- requêtes `010C`, `0105`, `010B` → `CAN ERROR`
-
-Conclusion : interface trop peu fiable pour poursuivre.
-
-### ELS27
-
-Une ELS27 V5/V5.2 Full a été étudiée.
-
-Avantages :
-
-- diagnostic Renault ;
-- PyRen / DDT4All ;
-- CAN principal ;
-- possibilités de bus secondaires ;
-- K-Line selon version.
-
-Problème :
-
-- prix environ 150 € en Europe.
-
-Décision actuelle :
-
-`[REPORTE]`
-
-Ne pas acheter maintenant. Le budget doit d’abord aller au système multimédia fonctionnel.
-
----
-
-## 13. Architecture CAN finale envisagée
-
-Plutôt que laisser un gros adaptateur OBD dans le véhicule, fabriquer une petite interface intégrée.
-
-Architecture :
-
-Raspberry Pi 4
-→ SPI
-→ contrôleur CAN 1
-→ transceiver CAN automobile
-→ réseau véhicule
-
-Raspberry Pi 4
-→ SPI
-→ contrôleur CAN 2
-→ transceiver CAN automobile
-→ réseau multimédia / secondaire
-
-Candidat contrôleur :
-
-- `MCP2518FD`
-
-Candidat transceiver :
-
-- `ATA6560` ou équivalent automobile.
-
-Avantages :
-
-- vrai contrôleur CAN matériel ;
-- support Linux / SocketCAN ;
-- faible coût ;
-- taille réduite ;
-- accès direct à `can0`, `can1`.
-
-Des modules MCP2518FD + ATA6560 peu coûteux peuvent être utilisés pour les prototypes.
-
-### Attention
-
-Avant usage sur un bus véhicule existant :
-
-- vérifier la fréquence du quartz ;
-- vérifier la tension logique SPI ;
-- vérifier la présence d’une terminaison 120 Ω ;
-- supprimer/désactiver toute terminaison supplémentaire si nécessaire ;
-- utiliser une dérivation courte ;
-- utiliser une paire torsadée ;
-- ajouter protections ESD/automobile sur le PCB final.
-
-### Broches OBD / réseaux
-
-CAN OBD standard :
-
-- pin 6 : CAN-H
-- pin 14 : CAN-L
-
-L’existence et l’usage exact d’un CAN secondaire Renault sur d’autres broches, notamment 12/13, doivent être vérifiés sur CE véhicule avant câblage définitif.
-
-Ne pas considérer 12/13 comme acquis tant que cela n’a pas été confirmé par schéma Renault ou mesure.
-
----
-
-## 14. K-Line
-
-Le PCB final pourra réserver l’emplacement d’un transceiver K-Line, par exemple :
-
-- `L9637D`
-
-Raison :
-
-certains calculateurs de véhicules de cette génération peuvent encore utiliser ISO9141/KWP/K-Line.
-
-Cette partie peut rester non peuplée si les tests montrent qu’elle n’est pas utile.
-
----
-
-## 15. PCB final — vision actuelle
-
-Objectif : une seule carte spécifique Espace IV plutôt qu’une collection de modules.
-
-Bloc fonctionnel cible :
-
-```text
-+--------------------------------------------------+
-|           Espace IV Interface Board              |
-|                                                  |
-| RP2040                                           |
-|  - commande volant                               |
-|  - CSW-2000R                                     |
-|  - marche arrière                                |
-|  - ACC / illumination                            |
-|                                                  |
-| MFI343S00177-L                                   |
-|  - authentification Apple CarPlay                |
-|                                                  |
-| MCP2518FD #1 + transceiver CAN                   |
-| MCP2518FD #2 + transceiver CAN                   |
-|                                                  |
-| emplacement K-Line / L9637D                      |
-|                                                  |
-| protections ESD / surtensions                    |
-| entrées véhicule protégées                       |
-| connecteurs détrompés                            |
-|                                                  |
-| liaison Raspberry Pi                             |
-+--------------------------------------------------+
-```
-
-Le PCB ne doit être dessiné qu’après reverse engineering du CSW et de la commande au volant.
-
----
-
-## 16. Alimentation automobile
-
-Le Raspberry Pi ne doit pas être alimenté naïvement depuis un +12 V permanent de l’OBD.
-
-Le système final devra gérer :
-
-- +12 V automobile ;
-- surtensions ;
-- chute de tension au démarrage ;
-- ACC / contact ;
-- extinction propre Linux ;
-- temporisation ;
-- consommation à l’arrêt ;
-- éventuel réveil rapide.
+Rôle :
+
+- commandes physiques ;
+- debounce ;
+- molette ;
+- éventuellement CSW ;
+- reverse ;
+- ACC/illumination ;
+- USB HID vers Pi.
+
+Le RP2040 ne fait pas le CAN principal.
+
+Prototype : RP2040-Zero/Pico.
+
+## 12. Mapping fonctionnel provisoire
+
+À valider après tests LIVI :
+
+- `MAP 2D/3D` → CarPlay / Roole Map ;
+- `INFO/ROUTE` → dashboard véhicule ;
+- `MENU/SET` → menu système ;
+- `BACK` → retour ;
+- `DEST/HOME` → accueil/navigation ;
+- `REPEAT/MUTE` → mute/média ;
+- `LIGHT/DARK` → jour/nuit ;
+- joystick → navigation UI ;
+- molette → navigation/next-prev ;
+- clic → validation ;
+- appui long à définir → Siri.
+
+## 13. Audio / mains libres
 
 Architecture cible :
 
-12 V véhicule
-→ protection
-→ buck automobile 5 V
-→ Raspberry Pi
+```text
+Pi → DAC / ligne → AUX Renault → amplification OEM
+```
 
-ACC/contact
-→ entrée protégée
-→ logique RP2040 / alimentation
-→ shutdown propre
-→ coupure après délai.
+Micro :
 
----
+1. essayer micro Renault d’origine ;
+2. fallback micro automobile externe discret.
 
-## 17. Audio
+À valider :
 
-Objectif : conserver autant que possible l’audio Renault d’origine.
-
-Piste principale :
-
-Raspberry Pi
-→ DAC / sortie ligne
-→ entrée AUX du système Renault
-→ amplification Renault
-→ haut-parleurs d’origine.
-
-Points à vérifier :
-
-- type exact de système audio ;
 - présence/activation AUX ;
 - niveau ligne ;
 - bruit de masse ;
-- nécessité d’un isolateur audio ;
-- comportement téléphone / média.
+- isolateur éventuel ;
+- micro ;
+- appels/Siri.
 
----
+Document : `docs/AUDIO_MIC.md`.
 
-## 18. Logiciel
+## 14. Caméra de recul
 
-### Raspberry Pi
+Obligatoire.
 
-- Linux
-- LIVI
-- services système dédiés
-- SocketCAN futur
-- service commandes HID
-- gestion caméra
-- gestion ACC / shutdown
-- dashboard véhicule futur.
+Exigences :
 
-### CarPlay
+- automatique en marche arrière ;
+- retour automatique ;
+- faible latence ;
+- fonctionne sans iPhone ;
+- idéalement <1 s ;
+- watchdog / stratégie robuste si LIVI plante.
 
-LIVI doit gérer :
+Technologie encore ouverte : CVBS / AHD / USB UVC.
 
-- affichage CarPlay ;
-- iPhone filaire/sans fil selon configuration ;
-- audio ;
-- microphone ;
-- commandes physiques ;
-- Siri ;
-- Roole Map.
+Document : `docs/REVERSE_CAMERA.md`.
 
-### Dashboard CAN
+## 15. CAN véhicule
 
-A développer après validation des données disponibles.
+Objectifs futurs :
 
-L’idée est de pouvoir basculer par exemple :
+- température liquide ;
+- RPM ;
+- vitesse ;
+- pression admission/turbo ;
+- rail ;
+- FAP ;
+- EGR ;
+- autres données Renault.
 
-`INFO/ROUTE`
-→ dashboard véhicule
+### Tests déjà réalisés
 
-et :
+XTOOL A30M :
 
-`MAP`
-→ retour CarPlay / Roole Map.
+- Bluetooth SPP présent ;
+- protocole propriétaire ;
+- non exploitable comme ELM327 direct.
 
----
-
-## 19. Caméra de recul — intégration logicielle envisagée
-
-Service Linux surveillant l’entrée marche arrière.
-
-Pseudo-logique :
+Ancien ELM327 Wi-Fi :
 
 ```text
-si reverse == ON:
-    mémoriser écran/application actuelle
-    afficher caméra immédiatement
-sinon:
-    restaurer l’écran précédent
+192.168.0.10:35000
+ATI → ELM327 v1.5
+ATDP → ISO 15765-4 CAN 11/500
+010C / 0105 / 010B → CAN ERROR
 ```
 
-La caméra ne doit pas dépendre du fait que CarPlay soit connecté.
+Conclusion : interface abandonnée pour ce projet.
 
-Prévoir un watchdog afin que la caméra reste disponible même si LIVI rencontre un problème.
+ELS27 V5/V5.2 Full : utile mais ~150 €, achat reporté.
 
----
+### Architecture finale
 
-## 20. Ordre de priorité budgétaire
+```text
+Pi SPI → MCP2518FD #1 → transceiver → CAN véhicule
+Pi SPI → MCP2518FD #2 → transceiver → CAN secondaire
+```
 
-### Priorité 1 — ergonomie et multimédia
+K-Line optionnelle `L9637D`.
 
-- pièces de commandes Renault d’occasion : achetées ;
-- écran 7" ;
-- validation Raspberry Pi + LIVI hors CarPlay ;
-- MFi de laboratoire ;
-- validation CarPlay natif / Roole Map ;
-- audio ;
-- caméra de recul.
+Règles :
 
-### Priorité 2 — intégration électronique
+- écoute passive d’abord ;
+- pas d’émission active avant compréhension ;
+- ne pas considérer OBD 12/13 comme CAN secondaire sans preuve ;
+- attention aux terminaisons 120 Ω.
 
-- RP2040 ;
-- prototypes CAN ;
-- alimentation automobile ;
-- PCB maison.
+Document : `docs/CAN_RESEARCH.md`.
 
-### Priorité 3 — données moteur avancées
+## 16. Alimentation automobile
 
-- reverse engineering CAN ;
-- éventuelle interface de diagnostic professionnelle ;
-- ELS27 seulement si elle devient réellement nécessaire.
+Ne jamais alimenter naïvement le Pi depuis un +12 V véhicule permanent.
 
-Le projet ne doit pas dépenser 150 € dans un outil OBD avant d’avoir validé les fonctions utilisées tous les jours.
+Cible :
 
----
+```text
+12 V véhicule
+→ protections automobile
+→ buck 5 V
+→ Raspberry Pi
+```
 
-## 21. Matériel disponible / prévu
+ACC/contact :
 
-### Déjà disponible
+- détection protégée ;
+- shutdown Linux propre ;
+- délai ;
+- coupure finale ;
+- faible consommation véhicule arrêté.
 
-- Raspberry Pi 4
-- PC Linux pour développement
-- imprimante 3D pour le cache écran
-- XTOOL A30M pour diagnostic classique
-- ELM327 Wi-Fi ancien, non retenu pour le projet.
+Document : `docs/POWER.md`.
 
-### Acheté
+## 17. PCB final
 
-- `8200326970 / CSW-2000R`
-- `7701049643 / 34442201AF`
-
-### A acheter à court terme
-
-- écran 7" IPS non tactile suffisamment lumineux ;
-- RP2040-Zero pour laboratoire ;
-- MFi de laboratoire pour validation CarPlay native ;
-- composants minimum nécessaires à son alimentation et à sa liaison I²C ;
-- petit matériel de mesure / fils / crochets de test si nécessaire.
-
-### A acheter après validation
-
-- 2 interfaces MCP2518FD + transceiver pour prototype ;
-- caméra de recul ;
-- interface vidéo associée ;
-- alimentation automobile ;
-- DAC/audio si nécessaire.
-
----
-
-## 22. Outils de laboratoire utiles
-
-- multimètre ;
-- alimentation de laboratoire avec limitation de courant ;
-- oscilloscope ;
-- analyseur logique ;
-- micro-grabbers / crochets de test ;
-- fils Dupont uniquement pour établi basse tension ;
-- RP2040 ;
-- Raspberry Pi 4 ;
-- modules CAN.
-
-Pour le CSW, ne jamais injecter 12 V au hasard avant d’avoir identifié masse et alimentation.
-
----
-
-## 23. Roadmap
-
-### Phase A — commandes Renault
-
-1. réception CSW-2000R ;
-2. réception commande au volant ;
-3. photos détaillées ;
-4. continuité commande au volant ;
-5. décodage molette ;
-6. inspection PCB CSW ;
-7. identification brochage CSW ;
-8. choix du mode d’interfaçage.
-
-Livrable :
-`docs/CONTROLS_REVERSE_ENGINEERING.md`
-
-### Phase B — CarPlay sur établi
-
-1. Pi 4 ;
-2. LIVI ;
-3. écran HDMI temporaire ;
-4. validation démarrage / affichage / navigation clavier-HID hors CarPlay ;
-5. intégrer un MFi de laboratoire ;
-6. valider alimentation, liaison I²C et détection MFi par LIVI ;
-7. connecter l’iPhone ;
-8. valider CarPlay natif ;
-9. valider Roole Map ;
-10. valider commandes HID dans CarPlay ;
-11. valider audio ;
-12. valider microphone ;
-13. valider Siri ;
-14. valider reconnexion après reboot.
-
-Livrable :
-`docs/LIVI_CARPLAY_SETUP.md`
-
-### Phase C — nouvel écran
-
-1. choisir 7" ;
-2. relever toutes dimensions ;
-3. modéliser nouveau cache ;
-4. impression prototype ;
-5. validation visibilité ;
-6. validation soleil / nuit.
-
-Livrable :
-`cad/display_bezel/`
-
-### Phase D — caméra de recul
-
-1. choisir technologie caméra ;
-2. choisir interface vidéo ;
-3. tester latence ;
-4. récupérer signal marche arrière ;
-5. écrire bascule automatique.
-
-Livrable :
-`docs/REVERSE_CAMERA.md`
-
-### Phase E — PCB V1
-
-Inclure :
+Objectif : une carte unique Espace IV intégrant :
 
 - RP2040 ;
-- MFi ;
+- MFi + load-switch ;
 - double CAN ;
 - K-Line optionnelle ;
-- entrées commandes ;
 - reverse ;
-- ACC ;
-- protections.
+- ACC/illumination ;
+- protections ;
+- connecteurs ;
+- points de test.
 
-Livrable :
-`hardware/espace_iv_interface_v1/`
+### Gate avant lancement PCB V1
 
-### Phase F — CAN Renault
+Ne pas envoyer le PCB tant que :
 
-1. acquisition passive ;
-2. identifier bus ;
-3. enregistrer trames ;
-4. corréler actions véhicule ;
-5. identifier données utiles ;
-6. seulement ensuite envisager requêtes diagnostic actives.
+- commandes Renault non mesurées ;
+- MFi non validé sur banc ;
+- orientation/footprint MFi non revérifiés ;
+- alimentation non validée ;
+- stratégie écran non stabilisée.
 
-Livrable :
-`docs/CAN_RESEARCH.md`
+## 18. Priorités actuelles
 
----
+### P0 — banc fonctionnel
 
-## 24. Principes à respecter
+1. Pi 4 sous Trixie ;
+2. LIVI ;
+3. affichage HDMI temporaire ;
+4. clavier/HID ;
+5. MFi prototype ;
+6. détection `0x10` ;
+7. CarPlay filaire ;
+8. audio/micro/Siri.
 
-1. Ne pas supposer un protocole Renault sans mesure.
-2. Ne pas envoyer de commandes CAN actives avant d’avoir compris le bus.
-3. Favoriser l’écoute passive.
-4. Garder la prise OBD libre dans l’installation finale.
-5. Ne pas couper le faisceau d’origine si un adaptateur/intermédiaire est possible.
-6. Ne pas acheter un composant coûteux avant de savoir qu’il est nécessaire.
-7. Conserver les pièces Renault visibles pour obtenir un résultat OEM+.
-8. La caméra de recul doit fonctionner même sans iPhone.
-9. Les commandes physiques restent prioritaires sur le tactile.
-10. Documenter chaque découverte dans GitHub immédiatement.
+### P1 — commandes / usage quotidien
 
----
+- reverse engineering commandes Renault ;
+- écran final ;
+- caméra ;
+- audio ;
+- alimentation automobile.
 
-## 25. Questions ouvertes
+### P2 — intégration électronique
 
-### Commande centrale
+- PCB V1 ;
+- double CAN prototype.
 
-- protocole exact CSW-2000R ?
-- alimentation ?
-- brochage ?
-- communication directement exploitable ou bypass interne nécessaire ?
+### P3 — télémétrie avancée
 
-### Commande au volant
+- CAN Renault ;
+- ELS27 uniquement si réellement nécessaire.
 
-- matrice exacte ?
-- codage exact de la molette ?
-- toutes les positions sont-elles détectables indépendamment ?
+## 19. Achats court terme
 
-### Ecran
+Voir `BOM.md`.
 
-- modèle 7" final ?
-- luminosité suffisante ?
-- résolution optimale pour LIVI ?
-- dimensions PCB réelles ?
+Actuellement :
+
+- écran 7" à sélectionner ;
+- RP2040 prototype ;
+- MFi `MFI343S00177-L` ;
+- passifs MFi ;
+- load-switch MFi à sélectionner après mesure ;
+- petit matériel de laboratoire.
+
+Le MFi n’est plus classé en achat « après validation » : il est nécessaire pour effectuer la validation CarPlay.
+
+## 20. Questions ouvertes majeures
+
+### MFi
+
+- consommation réelle ?
+- validation 3.3 V sur notre lot ?
+- adresse `0x10` confirmée ?
+- load-switch exact ?
+- authentification CarPlay réussie ?
+
+### Commandes
+
+- pinout CSW ?
+- protocole CSW ?
+- matrice commande volant ?
+- séquence molette ?
+
+### Écran
+
+- modèle final ?
+- dimensions module ?
+- luminosité réelle ?
 
 ### Audio
 
-- comment reprendre proprement l’AUX ?
-- micro Renault réutilisable ?
+- AUX Renault ?
+- micro OEM réutilisable ?
 
 ### Caméra
 
-- CVBS, AHD ou USB ?
-- meilleure interface faible latence Linux ?
-- emplacement physique ?
-- récupération signal marche arrière ?
+- CVBS/AHD/UVC ?
+- capture Linux faible latence ?
 
 ### CAN
 
-- topologie exacte des bus de cet Espace IV ?
-- présence/utilité d’un bus multimédia accessible sans démonter ?
-- quelles valeurs sont diffusées passivement ?
-- quelles valeurs demandent une session diagnostic ?
+- topologie réelle de cet Espace IV ?
+- bus secondaire accessible ?
+- valeurs passives disponibles ?
 
 ### Alimentation
 
-- emplacement +12 V / ACC définitif ?
-- délai d’arrêt idéal ?
-- besoin d’un supercondensateur / UPS ou simple shutdown contrôlé ?
+- point +12 V / ACC définitif ?
+- délai shutdown ?
+- UPS/supercap nécessaire ou non ?
 
----
+## 21. Prochaine action concrète
 
-## 26. Structure GitHub recommandée
+**Banc Raspberry Pi 4 + LIVI sous Trixie, avec écran HDMI temporaire.**
 
-```text
-espace_iv_carplay/
-├── README.md
-├── PROJECT_STATE.md
-├── BOM.md
-├── docs/
-│   ├── ARCHITECTURE.md
-│   ├── CONTROLS_REVERSE_ENGINEERING.md
-│   ├── CSW2000R.md
-│   ├── STEERING_REMOTE.md
-│   ├── LIVI_CARPLAY_SETUP.md
-│   ├── DISPLAY.md
-│   ├── AUDIO_MIC.md
-│   ├── REVERSE_CAMERA.md
-│   ├── POWER.md
-│   ├── CAN_RESEARCH.md
-│   └── TEST_LOG.md
-├── firmware/
-│   └── rp2040/
-├── software/
-│   ├── controls_bridge/
-│   ├── camera_service/
-│   └── dashboard/
-├── hardware/
-│   ├── prototypes/
-│   └── espace_iv_interface_v1/
-├── cad/
-│   └── display_bezel/
-├── captures/
-│   ├── csw2000r/
-│   ├── steering_remote/
-│   └── can/
-└── references/
-```
+Avant CarPlay :
 
----
-
-## 27. Source de vérité pour les futurs chats
-
-Lors d’une reprise dans un nouveau chat :
-
-1. lire `PROJECT_STATE.md` ;
-2. lire le dernier `docs/TEST_LOG.md` ;
-3. lire le document correspondant à la partie en cours ;
-4. ne pas se baser sur les anciennes hypothèses si elles sont contredites par des mesures plus récentes.
-
-Les mesures sur le véhicule et sur les pièces physiques priment sur les informations de forums.
-
-Ordre de confiance :
-
-1. mesures réalisées sur notre Espace / nos pièces ;
-2. schémas constructeur Renault ;
-3. datasheets des composants ;
-4. code / documentation des projets utilisés ;
-5. reverse engineering public sérieux ;
-6. forums ;
-7. hypothèses.
-
----
-
-## 28. Etat du projet au 01/09/2026
-
-- architecture générale : définie ;
-- Raspberry Pi 4 : disponible ;
-- choix iPhone / CarPlay / Roole Map : défini ;
-- LIVI : piste retenue ;
-- MFi direct : piste retenue ;
-- MFi de laboratoire : requis avant validation iPhone / CarPlay natif ;
-- tests LIVI sans MFi : limités à l’application, l’affichage et les entrées locales/clavier/HID ;
-- commande centrale de laboratoire : achetée ;
-- commande au volant de laboratoire : achetée ;
-- écran 7" : décision prise, modèle à choisir ;
-- tactile : non nécessaire ;
-- nouveau cache écran imprimé 3D : prévu ;
-- caméra de recul : ajoutée au cahier des charges ;
-- RP2040 : retenu pour les commandes physiques ;
-- double CAN matériel : retenu pour la future carte ;
-- ELS27 à ~150 € : reportée ;
-- reverse engineering commande centrale : à démarrer à réception ;
-- reverse engineering commande volant/molette : à démarrer à réception ;
-- CAN véhicule : phase ultérieure ;
-- PCB final : ne pas dessiner avant les mesures des commandes.
+1. vérifier OS ;
+2. installer LIVI ;
+3. valider affichage ;
+4. valider clavier/HID ;
+5. construire le prototype MFi selon `docs/MFI_WIRING.md` ;
+6. mesurer et documenter dans `docs/TEST_LOG.md`.
