@@ -2,6 +2,15 @@
 
 Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `WAIT` avant validation de l’étape correspondante.
 
+## Statuts
+
+- `HAVE` : déjà disponible ;
+- `BOUGHT` : acheté pour le projet ;
+- `SELECT` : choix/achat à court terme ;
+- `DESIGN` : architecture définie mais composant exact à choisir ;
+- `WAIT` : ne pas acheter avant validation d’une étape précédente ;
+- `DEFERRED` : volontairement reporté.
+
 | Élément | Référence / type | Qté | Etat | Priorité | Budget cible |
 |---|---|---:|---|---|---:|
 | Raspberry Pi 4 | existant | 1 | HAVE | P0 | 0 € |
@@ -9,7 +18,9 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 | Commande volant | Renault `7701049643`, `34442201AF` | 1 | BOUGHT | P0 | acheté |
 | Écran | 7" IPS HDMI, non tactile, forte luminosité | 1 | SELECT | P1 | 40–80 € |
 | RP2040 prototype | RP2040-Zero ou Pico | 2 | SELECT | P1 | 5–20 € |
-| MFi | `MFI343S00177-L` / CP3.0 | 1+ | WAIT | P1 | quelques € |
+| MFi CP3.0 | Microchip `MFI343S00177-L`, LCSC `C33770534` | 2 conseillé | SELECT | P1 | quelques € |
+| Passifs MFi | 4.7 kΩ ×2, 33 Ω ×2, 100 nF, 1 µF | 1 lot | SELECT | P1 | <5 € |
+| Commutation MFi | load-switch 3.3 V actif haut, EN compatible GPIO 3.3 V | 1 | DESIGN | P1 | <5 € |
 | CAN prototype | MCP2518FD + transceiver auto | 2 | WAIT | P2 | 15–30 € |
 | K-Line | L9637D ou équivalent | 1 | WAIT | P3 | quelques € |
 | Caméra recul | à choisir | 1 | SELECT | P1 | 20–50 € |
@@ -23,7 +34,16 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 ## Règles d’achat
 
 - priorité aux fonctions visibles au quotidien ;
-- aucune interface diagnostic à 150 € tant qu’elle n’est pas indispensable ;
+- le MFi n’est plus `WAIT` : il est requis pour valider CarPlay natif avec LIVI ;
+- acheter au moins deux MFi si le surcoût reste négligeable, le boîtier étant petit et délicat à souder ;
+- ne pas figer le load-switch MFi avant mesure du courant du prototype ;
+- aucune interface diagnostic à ~150 € tant qu’elle n’est pas indispensable ;
 - acheter les modules CAN de test seulement après réception/relevé des commandes Renault ;
 - ne pas commander l’écran avant d’avoir validé dimensions extérieures, luminosité et connectique ;
-- pour le PCB MFi final, préférer assemblage professionnel du DFN.
+- pour le PCB MFi final, préférer assemblage professionnel du DFN/XDFN.
+
+## Références MFi
+
+- LIVI : `docs/LIVI_CARPLAY_SETUP.md`
+- câblage MFi : `docs/MFI_WIRING.md`
+- source fournisseur : LCSC `C33770534`
