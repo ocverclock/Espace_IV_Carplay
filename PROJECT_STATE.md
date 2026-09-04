@@ -82,14 +82,21 @@ Xanavi Informatics Corporation
 - boîtier ouvert sans destruction ;
 - PCB principal et face boutons photographiés ;
 - connecteur principal `CN1` = **12 voies, 2 × 6** ;
-- sérigraphie `6` et `12` visible près du connecteur ;
+- numérotation mécanique de `CN1` confirmée sur la pièce physique ;
 - microcontrôleur principal NEC Japan en QFP ;
 - quartz externe `X1` ;
 - étage de protection / alimentation visible près de CN1 (`ZD4`, `ZD5`, `VR3`, transistors et passifs) ;
 - carte avant avec boutons `SWx`, LEDs et joystick central ;
 - le CSW est donc une commande électronique active, pas une simple matrice passive exposée au faisceau.
 
-L’ancienne mention « connecteur 6 voies » est **invalidée**.
+Vue dans `CN1`, détrompeur en bas :
+
+```text
+7  8  9 10 11 12
+1  2  3  4  5  6
+```
+
+L’ancienne mention « connecteur 6 voies » ainsi que l’ancienne représentation avec `1..6` sur la rangée supérieure sont **invalidées**.
 
 Document : `docs/CSW2000R.md`.
 
@@ -287,14 +294,22 @@ Référence : `8200326970 / CSW-2000R`.
 - ouverte et photographiée ;
 - électronique interne confirmée ;
 - `CN1` = **12 voies (2 × 6)** ;
+- numérotation mécanique confirmée ;
 - MCU NEC + quartz externe visibles ;
 - boutons / LEDs gérés par l’électronique interne.
 
+Convention définitive de numérotation, vue dans `CN1` détrompeur en bas :
+
+```text
+haut : 7  8  9 10 11 12
+bas  : 1  2  3  4  5  6
+```
+
 ### Toujours inconnu
 
-- numérotation exacte vue côté faisceau ;
 - GND ;
 - alimentation / tension ;
+- fonction électrique de chacune des 12 pins ;
 - référence exacte du MCU ;
 - fonction de `IC3` ;
 - protocole de communication ;
@@ -304,13 +319,12 @@ Référence : `8200326970 / CSW-2000R`.
 
 ### Prochain plan CSW
 
-1. photo `CN1` strictement de face ;
-2. verrouiller numérotation 1–12 ;
-3. continuité hors tension des 12 broches ;
-4. identifier GND et chemin d’alimentation ;
-5. macros MCU / IC3 / étage d’entrée ;
-6. alimentation labo limitée en courant seulement après identification ;
-7. analyse logique / oscilloscope des lignes restantes.
+1. identifier la ou les broches GND par continuité, carte hors tension ;
+2. cartographier les 12 pins hors tension ;
+3. identifier le chemin d’alimentation ;
+4. macros MCU / IC3 / étage d’entrée ;
+5. alimentation labo limitée en courant seulement après identification ;
+6. analyse logique / oscilloscope des lignes restantes.
 
 Fallback : conserver mécanique/joystick et remplacer l’électronique interne par RP2040 si le protocole d’origine n’est pas rentable à reproduire.
 
@@ -448,9 +462,9 @@ Deux travaux peuvent avancer en parallèle.
 
 ### P0-A — CSW-2000R
 
-1. verrouiller numérotation CN1 1–12 ;
-2. cartographie hors tension ;
-3. identifier GND / alimentation ;
+1. identifier GND hors tension ;
+2. cartographier les 12 pins ;
+3. identifier l’alimentation ;
 4. identifier les circuits d’interface ;
 5. seulement ensuite alimenter et observer le protocole.
 
@@ -502,11 +516,14 @@ Actuellement :
 
 **Ne pas l’alimenter.**
 
-Faire d’abord :
+La numérotation mécanique est verrouillée :
 
-1. une photo parfaitement de face de `CN1` permettant de lire le détrompeur et les repères `6` / `12` ;
-2. continuité des 12 pins hors tension ;
-3. renseigner le tableau dans `docs/CSW2000R.md`.
+```text
+haut : 7  8  9 10 11 12
+bas  : 1  2  3  4  5  6
+```
+
+Prochaine mesure : identifier la masse par continuité depuis un point GND fiable du PCB vers les 12 broches de `CN1`, puis renseigner `docs/CSW2000R.md`.
 
 ### En parallèle
 
