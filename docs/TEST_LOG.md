@@ -42,42 +42,49 @@ Xanavi Informatics Corporation
 - PCB principal et face boutons photographiés ;
 - connecteur principal repéré `CN1` ;
 - **CN1 possède 12 contacts, organisés en 2 × 6** ;
-- l'ancienne hypothèse « connecteur 6 voies » est donc invalidée ;
+- l'ancienne hypothèse « connecteur 6 voies » est invalidée ;
 - microcontrôleur principal NEC Japan en QFP visible ;
 - quartz externe `X1` visible près du MCU ;
 - composants de protection / alimentation visibles à proximité de CN1 (`ZD4`, `ZD5`, `VR3`, transistors et passifs) ;
 - face avant équipée de boutons `SWx`, LEDs et joystick central ;
 - la commande contient donc une électronique active et n'est pas une simple matrice passive directement exposée au faisceau.
 
-### Photo CN1 de face
+### Correction de la numérotation CN1
 
-Une photo supplémentaire a été fournie avec :
-
-- vue dans le connecteur ;
-- détrompeur rectangulaire en bas ;
-- repère triangulaire PCB visible près du premier coin ;
-- orientation suffisamment claire pour définir une convention de mesure.
-
-Numérotation **provisoire / OBSERVED** :
+Une première interprétation photographique avait été enregistrée ainsi :
 
 ```text
-Vue dans CN1 — détrompeur en bas
-
 1  2  3  4  5  6
 7  8  9 10 11 12
 ```
 
-Cette numérotation est cohérente avec les repères PCB observés, mais doit encore être confirmée électriquement avant passage au statut `MEASURED`.
+**Cette interprétation était fausse.**
+
+Le relevé utilisateur effectué directement sur la pièce physique fixe la numérotation correcte, vue dans `CN1` avec le détrompeur en bas :
+
+```text
+7  8  9 10 11 12
+1  2  3  4  5  6
+```
+
+Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
+
+La convention du projet devient donc :
+
+- rangée du haut, gauche → droite : `7, 8, 9, 10, 11, 12` ;
+- rangée du bas, gauche → droite : `1, 2, 3, 4, 5, 6` ;
+- détrompeur en bas.
+
+Toute documentation antérieure montrant les deux rangées inversées est supersédée.
 
 ### Ce qui n'est PAS encore mesuré
 
-- confirmation continuité pin 1 / repère PCB 1 ;
-- confirmation continuité pin 12 / repère PCB 12 ;
 - masse ;
 - alimentation ;
 - tension nominale ;
 - référence exacte MCU ;
 - fonction de `IC3` ;
+- fonction électrique des 12 pins ;
 - protocole de sortie ;
 - CAN / UART / LIN / autre.
 
@@ -96,10 +103,9 @@ Document détaillé : `docs/CSW2000R.md`.
 
 ### CSW-2000R
 
-1. confirmer par continuité le candidat pin 1 et le candidat pin 12 ;
-2. passer la numérotation CN1 en `MEASURED` si les deux contrôles correspondent ;
-3. continuité des 12 broches hors tension ;
-4. identifier GND et chemin d'alimentation ;
-5. macros lisibles MCU / IC3 / composants d'entrée ;
-6. seulement ensuite alimentation de laboratoire limitée en courant ;
-7. analyse des lignes de communication.
+1. chercher la ou les broches GND par continuité, carte hors tension ;
+2. cartographier les 12 broches hors tension ;
+3. identifier le chemin d'alimentation ;
+4. macros lisibles MCU / IC3 / composants d'entrée ;
+5. seulement ensuite alimentation de laboratoire limitée en courant ;
+6. analyse des lignes de communication.
