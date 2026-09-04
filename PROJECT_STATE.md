@@ -83,6 +83,8 @@ Xanavi Informatics Corporation
 - PCB principal et face boutons photographiés ;
 - connecteur principal `CN1` = **12 voies, 2 × 6** ;
 - numérotation mécanique de `CN1` confirmée sur la pièce physique ;
+- **CN1 pin 2 = GND** ;
+- **CN1 pin 8 = GND** ;
 - microcontrôleur principal NEC Japan en QFP ;
 - quartz externe `X1` ;
 - étage de protection / alimentation visible près de CN1 (`ZD4`, `ZD5`, `VR3`, transistors et passifs) ;
@@ -295,6 +297,7 @@ Référence : `8200326970 / CSW-2000R`.
 - électronique interne confirmée ;
 - `CN1` = **12 voies (2 × 6)** ;
 - numérotation mécanique confirmée ;
+- **pins 2 et 8 = GND** par continuité ;
 - MCU NEC + quartz externe visibles ;
 - boutons / LEDs gérés par l’électronique interne.
 
@@ -307,24 +310,25 @@ bas  : 1  2  3  4  5  6
 
 ### Toujours inconnu
 
-- GND ;
-- alimentation / tension ;
-- fonction électrique de chacune des 12 pins ;
+- entrée positive / alimentation ;
+- tension nominale ;
+- fonction électrique des 10 autres pins ;
 - référence exacte du MCU ;
 - fonction de `IC3` ;
 - protocole de communication ;
 - CAN / UART / LIN / autre.
 
-**Ne pas supposer CAN. Ne pas appliquer 12 V tant que GND et alimentation ne sont pas identifiés.**
+**Ne pas supposer CAN. Ne pas appliquer 12 V tant que l’entrée d’alimentation et son chemin de protection ne sont pas identifiés.**
 
 ### Prochain plan CSW
 
-1. identifier la ou les broches GND par continuité, carte hors tension ;
-2. cartographier les 12 pins hors tension ;
-3. identifier le chemin d’alimentation ;
-4. macros MCU / IC3 / étage d’entrée ;
-5. alimentation labo limitée en courant seulement après identification ;
-6. analyse logique / oscilloscope des lignes restantes.
+1. utiliser pin 2 ou pin 8 comme GND de référence ;
+2. rechercher hors tension la broche reliée au chemin positif du condensateur `220 µF / 25 V` proche de CN1 ;
+3. mesurer la résistance vers GND des 10 autres pins ;
+4. identifier le chemin d’alimentation à travers protections / régulation ;
+5. macros MCU / IC3 / étage d’entrée ;
+6. alimentation labo limitée en courant seulement après identification ;
+7. analyse logique / oscilloscope des lignes restantes.
 
 Fallback : conserver mécanique/joystick et remplacer l’électronique interne par RP2040 si le protocole d’origine n’est pas rentable à reproduire.
 
@@ -462,9 +466,9 @@ Deux travaux peuvent avancer en parallèle.
 
 ### P0-A — CSW-2000R
 
-1. identifier GND hors tension ;
-2. cartographier les 12 pins ;
-3. identifier l’alimentation ;
+1. GND identifié : pins 2 et 8 ;
+2. identifier le chemin d’alimentation hors tension ;
+3. cartographier les 10 pins restantes ;
 4. identifier les circuits d’interface ;
 5. seulement ensuite alimenter et observer le protocole.
 
@@ -516,14 +520,15 @@ Actuellement :
 
 **Ne pas l’alimenter.**
 
-La numérotation mécanique est verrouillée :
+Etat acquis :
 
 ```text
 haut : 7  8  9 10 11 12
 bas  : 1  2  3  4  5  6
+GND  : pins 2 et 8
 ```
 
-Prochaine mesure : identifier la masse par continuité depuis un point GND fiable du PCB vers les 12 broches de `CN1`, puis renseigner `docs/CSW2000R.md`.
+Prochaine mesure : avec la carte hors tension, rechercher la broche reliée au chemin positif du gros condensateur `220 µF / 25 V` près de CN1. Commencer en continuité/ohmmètre ; si aucune liaison directe n’apparaît, utiliser le mode diode dans les deux sens. Documenter le résultat dans `docs/CSW2000R.md` et `docs/TEST_LOG.md`.
 
 ### En parallèle
 
