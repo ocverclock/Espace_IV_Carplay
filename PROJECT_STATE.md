@@ -130,39 +130,34 @@ Conclusion :
 CSW-2000R utilise un bus CAN = CONFIRMÉ
 ```
 
-### Contacts CAN dupliqués — correction 2026-09-04
+### Contacts CAN dupliqués et polarité confirmée
 
-Mesure utilisateur :
+Mesures utilisateur :
 
 ```text
 CN1-5 = CN1-6
 CN1-11 = CN1-12
 ```
 
-Les deux nets CAN côté connecteur sont donc :
+Continuité confirmée jusqu'aux sorties du PCA82C250 :
 
 ```text
-NET A = CN1-5 + CN1-6
-NET B = CN1-11 + CN1-12
+PCA82C250 pin 7 = CANH → CN1-5 / CN1-6
+PCA82C250 pin 6 = CANL → CN1-11 / CN1-12
 ```
 
-Les anciennes notes ne mentionnant que `CN1-6` et `CN1-12` sont incomplètes et supersédées.
-
-Traçage actuel, **à confirmer par continuité à travers le ZJY2401** :
+Brochage CAN définitif :
 
 ```text
-NET A (CN1-5/6)   → CANH probable
-NET B (CN1-11/12) → CANL probable
+CN1-5  = CANH
+CN1-6  = CANH
+CN1-11 = CANL
+CN1-12 = CANL
 ```
 
-Statut de la polarité : **PROVISIONAL, pas encore MEASURED**.
+Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
 
-Pour verrouiller :
-
-```text
-PCA82C250 pin 7 = CANH
-PCA82C250 pin 6 = CANL
-```
+Les anciennes notes ne mentionnant que `CN1-6` et `CN1-12`, ou laissant la polarité H/L provisoire, sont supersédées.
 
 ### Table CN1 actuelle
 
@@ -172,14 +167,14 @@ PCA82C250 pin 6 = CANL
 | 2 | **GND** | MEASURED |
 | 3 | TBD | non mesuré |
 | 4 | TBD | non mesuré |
-| 5 | **CAN net A**, relié à 6 | MEASURED |
-| 6 | **CAN net A**, relié à 5 | MEASURED |
+| 5 | **CANH**, relié à 6 | MEASURED |
+| 6 | **CANH**, relié à 5 | MEASURED |
 | 7 | TBD | non mesuré |
 | 8 | **GND** | MEASURED |
 | 9 | TBD | non mesuré |
 | 10 | TBD | non mesuré |
-| 11 | **CAN net B**, relié à 12 | MEASURED |
-| 12 | **CAN net B**, relié à 11 | MEASURED |
+| 11 | **CANL**, relié à 12 | MEASURED |
+| 12 | **CANL**, relié à 11 | MEASURED |
 
 ### MCU
 
@@ -465,23 +460,22 @@ Ne pas lancer PCB V1 tant que commandes, MFi, alimentation et stratégie écran 
 
 ```text
 GND = pins 2 et 8
-CAN net A = pins 5 et 6
-CAN net B = pins 11 et 12
+CANH = pins 5 et 6
+CANL = pins 11 et 12
 CAN transceiver = PCA82C250
 CAN = CONFIRMED
-CANH/CANL = provisional, à confirmer
+CANH/CANL = MEASURED
 ```
 
 Prochaines étapes :
 
-1. confirmer `NET A/NET B = CANH/CANL` via PCA82C250 pins 7/6 ;
-2. mesurer la résistance entre les deux nets CAN pour vérifier une éventuelle terminaison ;
-3. suivre `PCA82C250 pin 3` vers le rail 5 V ;
-4. identifier le régulateur et l’entrée positive CN1 ;
-5. suivre TXD/RXD vers le MCU ;
-6. alimenter en labo avec limitation de courant ;
-7. déterminer bitrate CAN ;
-8. capturer trames boutons / joystick / rotation.
+1. mesurer la résistance entre CANH et CANL pour vérifier une éventuelle terminaison ;
+2. suivre `PCA82C250 pin 3` vers le rail 5 V ;
+3. identifier le régulateur et l’entrée positive CN1 ;
+4. suivre TXD/RXD vers le MCU ;
+5. alimenter en labo avec limitation de courant ;
+6. déterminer bitrate CAN ;
+7. capturer trames boutons / joystick / rotation.
 
 ### P0-B — banc LIVI / CarPlay
 
@@ -529,22 +523,18 @@ Actuellement :
 
 ### CSW
 
-**Carte hors tension.**
+**Carte hors tension et module débranché du véhicule.**
 
-1. Vérifier la continuité :
-
-```text
-PCA82C250 pin 7 = CANH → CN1-5/6 ou CN1-11/12
-PCA82C250 pin 6 = CANL → autre net
-```
-
-2. Mesurer la résistance entre :
+Mesurer la résistance entre :
 
 ```text
-CN1-5/6 ↔ CN1-11/12
+CANH = CN1-5/6
+CANL = CN1-11/12
 ```
 
-3. Puis suivre `PCA82C250 pin 3 = VCC 5 V` vers l’alimentation.
+Noter la valeur stabilisée pour déterminer si le CSW possède une terminaison CAN locale.
+
+Puis suivre `PCA82C250 pin 3 = VCC 5 V` vers l’alimentation.
 
 ### En parallèle
 
