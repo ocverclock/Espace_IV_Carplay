@@ -103,6 +103,41 @@ pin 6 ─┬─ volume − avec pin 4
        └─ état molette avec commun pin 2
 ```
 
+## Architecture d'origine Espace IV
+
+La documentation / les schémas de câblage Espace IV indiquent que la commande au volant (`repère 325`) ne semble pas être décodée directement par l'autoradio.
+
+Les **6 conducteurs** de la commande arrivent au **tableau de bord / afficheur déporté**, notamment sur le connecteur gris 30 voies. L'électronique du tableau de bord interprète les états de la commande puis transmet l'ordre sous forme numérique vers le système audio.
+
+Architecture de travail :
+
+```text
+commande au volant 7701049643
+6 fils / contacts secs
+        │
+        ▼
+tableau de bord / afficheur
+        │
+        │ décodage de la matrice
+        ▼
+liaison numérique multimédia
+(CAN ou I²C selon génération / autoradio)
+        │
+        ▼
+autoradio / système CNC
+```
+
+Pour l'Espace IV équipé du CNC, cette observation est cohérente avec le réseau multimédia CAN déjà identifié sur le projet.
+
+Sources externes consultées : schémas Espace IV et retours techniques Planète Renault / GPS-Carminat. Ce chemin doit être considéré comme **DOCUMENTED / EXTERNAL CORROBORATION**, distinct des mesures directes ci-dessus.
+
+Conséquence importante : dans notre projet, deux stratégies sont possibles :
+
+1. lire directement les 6 fils avec le RP2040, ce qui est simple et totalement maîtrisé ;
+2. écouter ultérieurement le réseau multimédia pour identifier les trames générées par le tableau de bord lorsqu'on utilise la commande au volant.
+
+La stratégie 1 reste la plus simple pour l'intégration CarPlay.
+
 ## Conséquence pour l'interface RP2040
 
 La commande peut être lue comme un ensemble de **contacts secs** :
@@ -118,4 +153,5 @@ Aucune conversion analogique n'est requise à ce stade.
 
 - fonction OEM exacte du **bouton inférieur** ;
 - sens fonctionnel à associer à la séquence `6 → 3 → 1` (molette haut/bas ou précédent/suivant selon l'usage Renault) ;
-- comportement aux transitions rapides pour dimensionner le debounce.
+- comportement aux transitions rapides pour dimensionner le debounce ;
+- trame multimédia correspondante émise par le tableau de bord pour chaque action, si l'on décide de documenter aussi le chemin OEM complet.
