@@ -100,11 +100,9 @@ CN1-11 = CN1-12
 Les deux nets côté connecteur sont donc :
 
 ```text
-NET H = CN1-5 + CN1-6
-NET L = CN1-11 + CN1-12
+CANH = CN1-5 + CN1-6
+CANL = CN1-11 + CN1-12
 ```
-
-Les anciennes notes ne mentionnant que `CN1-6` et `CN1-12` sont incomplètes et supersédées.
 
 ### Polarité CAN confirmée
 
@@ -126,6 +124,20 @@ CN1-12 = CANL
 
 Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
 
+### Mesure de terminaison CAN
+
+Module seul, hors tension et débranché du véhicule :
+
+```text
+R(CANH, CANL) = 37 kΩ
+```
+
+Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
+
+Interprétation : le CSW ne possède pas de terminaison CAN fixe locale de `120 Ω` entre CANH et CANL. Les `37 kΩ` mesurés correspondent à une impédance interne élevée et non à une terminaison de bus classique.
+
+Conséquence : ne pas ajouter arbitrairement `120 Ω` au niveau du CSW dans l'installation finale ; respecter uniquement la topologie réelle du bus et ses terminaisons d'extrémité.
+
 ### Alimentation
 
 Le PCA82C250 confirme un rail interne 5 V, mais l'entrée positive du module côté CN1 et la tension véhicule ne sont toujours pas identifiées.
@@ -136,13 +148,12 @@ Document détaillé : `docs/CSW2000R.md`.
 
 ## Prochains tests CSW-2000R
 
-1. mesurer, module seul et hors tension, la résistance entre `CANH (CN1-5/6)` et `CANL (CN1-11/12)` pour vérifier une éventuelle terminaison ;
-2. suivre `PCA82C250 pin 3` vers le rail 5 V puis le régulateur ;
-3. remonter jusqu'à l'entrée positive CN1 ;
-4. suivre `TXD pin 1` et `RXD pin 4` vers le MCU NEC ;
-5. seulement après identification alimentation : alimentation de laboratoire limitée en courant ;
-6. écoute CAN passive et détermination du bitrate ;
-7. captures trames par bouton / joystick / rotation.
+1. suivre `PCA82C250 pin 3` vers le rail 5 V puis le régulateur ;
+2. remonter jusqu'à l'entrée positive CN1 ;
+3. suivre `TXD pin 1` et `RXD pin 4` vers le MCU NEC ;
+4. seulement après identification alimentation : alimentation de laboratoire limitée en courant ;
+5. écoute CAN passive et détermination du bitrate ;
+6. captures trames par bouton / joystick / rotation.
 
 ## Prochains tests commande volant
 
