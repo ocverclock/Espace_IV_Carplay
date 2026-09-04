@@ -15,12 +15,19 @@
 - [x] ouvrir sans destruction
 - [x] photos PCB / face boutons
 - [x] confirmer connecteur `CN1` 12 voies (2 × 6)
-- [ ] photo CN1 strictement de face et numérotation 1–12 verrouillée
-- [ ] cartographie hors tension des 12 broches
-- [ ] identification exacte MCU NEC / `IC3` / étage d'entrée
-- [ ] identifier GND et alimentation
+- [x] numérotation 1–12 verrouillée
+- [x] identifier GND : pins 2 et 8
+- [x] identifier paire de communication : pins 6 et 12 via TDK `ZJY2401`
+- [x] identifier `IC3` : Philips/NXP `PCA82C250`
+- [x] protocole physique CSW : **CAN confirmé**
+- [ ] déterminer `CN1-6` / `CN1-12` = CANH / CANL
+- [ ] identifier alimentation d'entrée et rail 5 V
+- [ ] identifier exactement MCU NEC
+- [ ] suivre TXD/RXD entre PCA82C250 et MCU
 - [ ] première alimentation labo limitée en courant
-- [ ] protocole CSW identifié ou décision de bypass
+- [ ] déterminer bitrate CAN
+- [ ] capturer trames au repos / boutons / joystick
+- [ ] documenter IDs et payloads
 
 ### M1.2 — commande au volant
 - [ ] recevoir `7701049643`
