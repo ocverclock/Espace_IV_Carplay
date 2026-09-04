@@ -4,7 +4,7 @@ Dernière mise à jour : 2026-09-04
 
 Ce fichier est le **checkpoint global et la source de vérité principale** du projet.
 
-Il contient uniquement l’architecture, les faits mesurés, les décisions actives et les prochaines étapes. Les détails techniques vivent dans les documents de sous-système.
+Il contient l’architecture, les faits mesurés, les décisions actives et les prochaines étapes. Les détails vivent dans les documents de sous-système.
 
 ## 1. Objectif
 
@@ -69,7 +69,7 @@ Commande Centrale Multimedia
 Xanavi Informatics Corporation
 ```
 
-### Mécanique / connecteur
+### Connecteur CN1
 
 `CN1` possède **12 voies, 2 × 6**.
 
@@ -89,35 +89,29 @@ Les anciennes mentions « 6 voies » ou les schémas avec `1..6` sur la rangée 
 Carte hors tension :
 
 ```text
-CN1 pin 2 = GND
-CN1 pin 8 = GND
+CN1-2 = GND
+CN1-8 = GND
 ```
 
 Statut : **MEASURED**.
 
-### Paire CAN
+### Bus CAN confirmé
 
-Traçage utilisateur :
-
-```text
-CN1 pin 6  → TDK ZJY2401
-CN1 pin 12 → TDK ZJY2401
-```
-
-Le `TDK ZJY2401` est un filtre de mode commun placé sur une paire de lignes.
-
-`IC3` porte le marquage :
+Le PCB contient :
 
 ```text
-A82C250
-5K3A3
-N5464
-PHILIPS
+TDK ZJY2401
 ```
 
-Ce composant est identifié comme **Philips/NXP PCA82C250**, transceiver CAN haute vitesse ISO 11898.
+filtre de mode commun sur la paire de communication, et :
 
-Pinout utile :
+```text
+IC3 = Philips/NXP PCA82C250
+```
+
+transceiver CAN haute vitesse ISO 11898.
+
+Pinout utile du PCA82C250 :
 
 ```text
 1 TXD
@@ -134,15 +128,58 @@ Conclusion :
 
 ```text
 CSW-2000R utilise un bus CAN = CONFIRMÉ
-CN1-6 / CN1-12 = paire CAN via ZJY2401 = CONFIRMÉ
 ```
 
-Reste à déterminer :
+### Contacts CAN dupliqués — correction 2026-09-04
+
+Mesure utilisateur :
 
 ```text
-CN1-6  = CANH ou CANL ?
-CN1-12 = CANL ou CANH ?
+CN1-5 = CN1-6
+CN1-11 = CN1-12
 ```
+
+Les deux nets CAN côté connecteur sont donc :
+
+```text
+NET A = CN1-5 + CN1-6
+NET B = CN1-11 + CN1-12
+```
+
+Les anciennes notes ne mentionnant que `CN1-6` et `CN1-12` sont incomplètes et supersédées.
+
+Traçage actuel, **à confirmer par continuité à travers le ZJY2401** :
+
+```text
+NET A (CN1-5/6)   → CANH probable
+NET B (CN1-11/12) → CANL probable
+```
+
+Statut de la polarité : **PROVISIONAL, pas encore MEASURED**.
+
+Pour verrouiller :
+
+```text
+PCA82C250 pin 7 = CANH
+PCA82C250 pin 6 = CANL
+```
+
+### Table CN1 actuelle
+
+| Pin | Fonction / net | Statut |
+|---:|---|---|
+| 1 | TBD | non mesuré |
+| 2 | **GND** | MEASURED |
+| 3 | TBD | non mesuré |
+| 4 | TBD | non mesuré |
+| 5 | **CAN net A**, relié à 6 | MEASURED |
+| 6 | **CAN net A**, relié à 5 | MEASURED |
+| 7 | TBD | non mesuré |
+| 8 | **GND** | MEASURED |
+| 9 | TBD | non mesuré |
+| 10 | TBD | non mesuré |
+| 11 | **CAN net B**, relié à 12 | MEASURED |
+| 12 | **CAN net B**, relié à 11 | MEASURED |
 
 ### MCU
 
@@ -152,7 +189,7 @@ Le marquage semble compatible avec une famille Renesas/NEC `78K0/Kx2`, possiblem
 
 ### Alimentation
 
-Le `PCA82C250` confirme l’existence d’un rail interne **5 V** (`VCC pin 3`, nominal 4,5–5,5 V).
+Le `PCA82C250` confirme l’existence d’un rail interne **5 V**.
 
 L’entrée positive côté `CN1` et sa tension véhicule ne sont **pas encore identifiées**.
 
@@ -226,12 +263,9 @@ Documents :
         └───────────────────────────────────────────────────┘
 ```
 
-Le CSW étant désormais confirmé CAN, deux stratégies restent possibles :
+Le CSW étant confirmé CAN, la stratégie prioritaire est de **conserver son électronique d’origine et décoder ses trames**.
 
-1. conserver le CSW d’origine comme nœud CAN et décoder ses trames ;
-2. fallback RP2040 interne uniquement si le protocole CAN Xanavi est trop coûteux à reproduire.
-
-La stratégie 1 devient prioritaire.
+Fallback : RP2040 interne uniquement si le protocole Xanavi devient trop coûteux à reproduire.
 
 ## 7. Raspberry Pi / LIVI
 
@@ -247,8 +281,6 @@ Décision : `D013`.
 Document : `docs/LIVI_CARPLAY_SETUP.md`.
 
 ## 8. CarPlay / MFi
-
-### Règle fondamentale
 
 CarPlay natif LIVI nécessite un coprocesseur MFi physique.
 
@@ -267,7 +299,7 @@ Pi + Trixie
 
 Décision : `D012`.
 
-### Composant cible
+Composant cible :
 
 ```text
 Microchip MFI343S00177-L
@@ -332,8 +364,6 @@ Décisions :
 - luminosité élevée ;
 - nouvelle façade imprimée 3D.
 
-L’ancienne fenêtre visible d’environ `130 × 70 mm` n’est plus une limite définitive.
-
 Cible : idéalement ≥500 nits si prix raisonnable.
 
 Document : `docs/DISPLAY.md`.
@@ -351,13 +381,7 @@ Rôle prévu :
 
 Pour le CSW, le RP2040 n’est plus la voie principale tant que le décodage CAN d’origine reste réaliste.
 
-Le RP2040 ne fait pas le CAN principal.
-
-Prototype : RP2040-Zero/Pico.
-
 ## 11. Mapping fonctionnel provisoire
-
-À valider après tests LIVI :
 
 - `MAP 2D/3D` → CarPlay / Roole Map ;
 - `INFO/ROUTE` → dashboard véhicule ;
@@ -373,45 +397,23 @@ Prototype : RP2040-Zero/Pico.
 
 ## 12. Audio / mains libres
 
-Architecture cible :
-
 ```text
 Pi → DAC / ligne → AUX Renault → amplification OEM
 ```
 
-Micro :
-
-1. essayer micro Renault d’origine ;
-2. fallback micro automobile externe discret.
+Micro : essayer d’abord le micro Renault d’origine ; fallback micro automobile discret.
 
 Document : `docs/AUDIO_MIC.md`.
 
 ## 13. Caméra de recul
 
-Obligatoire.
-
-Exigences :
-
-- automatique en marche arrière ;
-- retour automatique ;
-- faible latence ;
-- fonctionne sans iPhone ;
-- idéalement <1 s ;
-- watchdog / stratégie robuste si LIVI plante.
+Obligatoire : bascule automatique, retour automatique, faible latence, fonctionnement sans iPhone.
 
 Technologie ouverte : CVBS / AHD / USB UVC.
 
 Document : `docs/REVERSE_CAMERA.md`.
 
 ## 14. CAN véhicule / architecture finale
-
-Objectifs futurs : température, RPM, vitesse, pression admission/turbo, rail, FAP, EGR et autres données Renault.
-
-Tests antérieurs :
-
-- XTOOL A30M : Bluetooth SPP mais protocole propriétaire ;
-- ancien ELM327 Wi-Fi : `ATI` OK, `ATDP` CAN 11/500, PID standard → `CAN ERROR` ; interface abandonnée ;
-- ELS27 V5/V5.2 Full : achat reporté (~150 €).
 
 Architecture finale envisagée :
 
@@ -420,22 +422,13 @@ Pi SPI → MCP2518FD #1 → transceiver → CAN véhicule
 Pi SPI → MCP2518FD #2 → transceiver → CAN secondaire / multimédia
 ```
 
-La découverte du `PCA82C250` dans le CSW confirme maintenant qu’au moins la commande centrale utilise physiquement un **bus CAN**.
+La présence du `PCA82C250` dans le CSW confirme qu’au moins la commande centrale utilise physiquement un **bus CAN** et renforce l’intérêt du second canal CAN.
 
-Cela renforce l’intérêt d’un second canal CAN dédié au réseau multimédia.
-
-Règles :
-
-- écoute passive d’abord ;
-- aucune émission active avant compréhension ;
-- aucune hypothèse sur OBD 12/13 sans preuve ;
-- attention aux terminaisons 120 Ω.
+Règles : écoute passive d’abord, aucune émission active avant compréhension, attention aux terminaisons 120 Ω.
 
 Document : `docs/CAN_RESEARCH.md`.
 
 ## 15. Alimentation automobile
-
-Cible :
 
 ```text
 12 V véhicule
@@ -462,39 +455,33 @@ Objectif : une carte unique Espace IV intégrant :
 - connecteurs ;
 - points de test.
 
-### Gate avant lancement PCB V1
-
-Ne pas envoyer le PCB tant que :
-
-- commandes Renault suffisamment mesurées ;
-- MFi validé sur banc ;
-- orientation/footprint MFi revérifiés ;
-- alimentation validée ;
-- stratégie écran stabilisée.
+Ne pas lancer PCB V1 tant que commandes, MFi, alimentation et stratégie écran ne sont pas suffisamment validés.
 
 ## 17. Priorités actuelles
 
 ### P0-A — CSW-2000R
 
-Etat :
+État :
 
 ```text
 GND = pins 2 et 8
-CAN pair = pins 6 et 12
+CAN net A = pins 5 et 6
+CAN net B = pins 11 et 12
 CAN transceiver = PCA82C250
 CAN = CONFIRMED
+CANH/CANL = provisional, à confirmer
 ```
 
 Prochaines étapes :
 
-1. déterminer `CN1-6` / `CN1-12` = CANH / CANL via PCA82C250 pins 6/7 ;
-2. suivre `PCA82C250 pin 3` vers le rail 5 V ;
-3. identifier le régulateur et l’entrée positive CN1 ;
-4. suivre TXD/RXD vers le MCU ;
-5. alimenter en labo avec limitation de courant ;
-6. déterminer bitrate CAN ;
-7. capturer trames au repos / boutons / joystick ;
-8. documenter IDs et payloads.
+1. confirmer `NET A/NET B = CANH/CANL` via PCA82C250 pins 7/6 ;
+2. mesurer la résistance entre les deux nets CAN pour vérifier une éventuelle terminaison ;
+3. suivre `PCA82C250 pin 3` vers le rail 5 V ;
+4. identifier le régulateur et l’entrée positive CN1 ;
+5. suivre TXD/RXD vers le MCU ;
+6. alimenter en labo avec limitation de courant ;
+7. déterminer bitrate CAN ;
+8. capturer trames boutons / joystick / rotation.
 
 ### P0-B — banc LIVI / CarPlay
 
@@ -507,7 +494,7 @@ Prochaines étapes :
 7. CarPlay filaire ;
 8. audio/micro/Siri.
 
-### P1 — usage quotidien
+### P1
 
 - commande au volant ;
 - écran final ;
@@ -515,14 +502,14 @@ Prochaines étapes :
 - audio ;
 - alimentation automobile.
 
-### P2 — intégration électronique
+### P2
 
 - PCB V1 ;
 - double CAN prototype.
 
-### P3 — télémétrie avancée
+### P3
 
-- CAN Renault ;
+- télémétrie CAN avancée ;
 - ELS27 uniquement si nécessaire.
 
 ## 18. Achats court terme
@@ -535,7 +522,7 @@ Actuellement :
 - RP2040 prototype ;
 - MFi `MFI343S00177-L` ;
 - passifs MFi ;
-- load-switch MFi à sélectionner après mesure ;
+- load-switch MFi à sélectionner ;
 - petit matériel de laboratoire.
 
 ## 19. Prochaine action concrète
@@ -544,21 +531,20 @@ Actuellement :
 
 **Carte hors tension.**
 
-Le prochain test le plus utile est :
+1. Vérifier la continuité :
 
 ```text
-PCA82C250 pin 6 = CANL → suivre vers CN1
-PCA82C250 pin 7 = CANH → suivre vers CN1
+PCA82C250 pin 7 = CANH → CN1-5/6 ou CN1-11/12
+PCA82C250 pin 6 = CANL → autre net
 ```
 
-Objectif : fixer définitivement :
+2. Mesurer la résistance entre :
 
 ```text
-CN1-6  = CANH ou CANL
-CN1-12 = CANL ou CANH
+CN1-5/6 ↔ CN1-11/12
 ```
 
-Puis suivre `PCA82C250 pin 3 = VCC 5 V` vers l’alimentation.
+3. Puis suivre `PCA82C250 pin 3 = VCC 5 V` vers l’alimentation.
 
 ### En parallèle
 
