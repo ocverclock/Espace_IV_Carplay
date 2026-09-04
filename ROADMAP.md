@@ -17,10 +17,11 @@
 - [x] confirmer connecteur `CN1` 12 voies (2 × 6)
 - [x] numérotation 1–12 verrouillée
 - [x] identifier GND : pins 2 et 8
-- [x] identifier paire de communication : pins 6 et 12 via TDK `ZJY2401`
+- [x] identifier contacts CAN dupliqués : `5=6` et `11=12`
 - [x] identifier `IC3` : Philips/NXP `PCA82C250`
 - [x] protocole physique CSW : **CAN confirmé**
-- [ ] déterminer `CN1-6` / `CN1-12` = CANH / CANL
+- [x] identifier polarité : `CN1-5/6 = CANH`, `CN1-11/12 = CANL`
+- [ ] mesurer éventuelle terminaison entre CANH et CANL
 - [ ] identifier alimentation d'entrée et rail 5 V
 - [ ] identifier exactement MCU NEC
 - [ ] suivre TXD/RXD entre PCA82C250 et MCU
