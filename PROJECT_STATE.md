@@ -86,8 +86,6 @@ Les anciennes mentions « 6 voies » ou les schémas avec `1..6` sur la rangée 
 
 ### Masse
 
-Carte hors tension :
-
 ```text
 CN1-2 = GND
 CN1-8 = GND
@@ -99,17 +97,8 @@ Statut : **MEASURED**.
 
 Le PCB contient :
 
-```text
-TDK ZJY2401
-```
-
-filtre de mode commun sur la paire de communication, et :
-
-```text
-IC3 = Philips/NXP PCA82C250
-```
-
-transceiver CAN haute vitesse ISO 11898.
+- filtre de mode commun `TDK ZJY2401` ;
+- `IC3 = Philips/NXP PCA82C250`, transceiver CAN haute vitesse ISO 11898.
 
 Pinout utile du PCA82C250 :
 
@@ -130,7 +119,7 @@ Conclusion :
 CSW-2000R utilise un bus CAN = CONFIRMÉ
 ```
 
-### Contacts CAN dupliqués et polarité confirmée
+### Brochage CAN définitif
 
 Mesures utilisateur :
 
@@ -139,14 +128,14 @@ CN1-5 = CN1-6
 CN1-11 = CN1-12
 ```
 
-Continuité confirmée jusqu'aux sorties du PCA82C250 :
+Continuité confirmée jusqu’aux sorties du PCA82C250 :
 
 ```text
 PCA82C250 pin 7 = CANH → CN1-5 / CN1-6
 PCA82C250 pin 6 = CANL → CN1-11 / CN1-12
 ```
 
-Brochage CAN définitif :
+Donc :
 
 ```text
 CN1-5  = CANH
@@ -157,7 +146,19 @@ CN1-12 = CANL
 
 Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
 
-Les anciennes notes ne mentionnant que `CN1-6` et `CN1-12`, ou laissant la polarité H/L provisoire, sont supersédées.
+### Terminaison CAN locale
+
+Module seul, hors tension :
+
+```text
+R(CANH, CANL) = 37 kΩ
+```
+
+Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
+
+Interprétation : le CSW **ne possède pas de terminaison CAN fixe locale de 120 Ω**. La valeur de `37 kΩ` est une impédance interne élevée, pas une terminaison de bus.
+
+Conséquence : ne pas ajouter arbitrairement `120 Ω` au niveau du CSW. La terminaison doit rester conforme à la topologie réelle du réseau et uniquement aux extrémités prévues.
 
 ### Table CN1 actuelle
 
@@ -209,13 +210,7 @@ connecteur 6 voies
 - probablement passive / contacts-matrice ;
 - molette obligatoire dans la reproduction.
 
-Plan :
-
-1. inspection ;
-2. tester les 15 couples de broches ;
-3. relever les boutons ;
-4. décoder la molette ;
-5. prototype RP2040 USB HID.
+Plan : inspection, cartographie des 6 broches, boutons, molette, puis prototype RP2040 USB HID.
 
 Documents :
 
@@ -311,12 +306,6 @@ SCL = GPIO26
 Power control = GPIO21
 ```
 
-Overlay :
-
-```ini
-dtoverlay=i2c-gpio,bus=2,i2c_gpio_sda=19,i2c_gpio_scl=26,i2c_gpio_delay_us=5
-```
-
 Architecture alimentation :
 
 ```text
@@ -340,9 +329,7 @@ Pinout de travail :
 9 PAD/GND
 ```
 
-Pas encore MEASURED sur notre prototype.
-
-Décision : `D015`.
+Pas encore MEASURED sur notre prototype. Décision : `D015`.
 
 Adresse I²C attendue CP3.0 : `0x10`, à confirmer.
 
@@ -350,14 +337,7 @@ Document : `docs/MFI_WIRING.md`.
 
 ## 9. Écran
 
-Décisions :
-
-- 7 pouces ;
-- non tactile ;
-- IPS préféré ;
-- HDMI préféré ;
-- luminosité élevée ;
-- nouvelle façade imprimée 3D.
+Décisions : 7", non tactile, IPS préféré, HDMI préféré, luminosité élevée et nouvelle façade imprimée 3D.
 
 Cible : idéalement ≥500 nits si prix raisonnable.
 
@@ -365,32 +345,11 @@ Document : `docs/DISPLAY.md`.
 
 ## 10. RP2040
 
-Rôle prévu :
-
-- commande au volant ;
-- debounce ;
-- molette ;
-- reverse ;
-- ACC/illumination ;
-- USB HID vers Pi.
+Rôle prévu : commande au volant, debounce, molette, reverse, ACC/illumination et USB HID vers Pi.
 
 Pour le CSW, le RP2040 n’est plus la voie principale tant que le décodage CAN d’origine reste réaliste.
 
-## 11. Mapping fonctionnel provisoire
-
-- `MAP 2D/3D` → CarPlay / Roole Map ;
-- `INFO/ROUTE` → dashboard véhicule ;
-- `MENU/SET` → menu système ;
-- `BACK` → retour ;
-- `DEST/HOME` → accueil/navigation ;
-- `REPEAT/MUTE` → mute/média ;
-- `LIGHT/DARK` → jour/nuit ;
-- joystick → navigation UI ;
-- molette → navigation/next-prev ;
-- clic → validation ;
-- appui long à définir → Siri.
-
-## 12. Audio / mains libres
+## 11. Audio / mains libres
 
 ```text
 Pi → DAC / ligne → AUX Renault → amplification OEM
@@ -400,15 +359,15 @@ Micro : essayer d’abord le micro Renault d’origine ; fallback micro automobi
 
 Document : `docs/AUDIO_MIC.md`.
 
-## 13. Caméra de recul
+## 12. Caméra de recul
 
-Obligatoire : bascule automatique, retour automatique, faible latence, fonctionnement sans iPhone.
+Obligatoire : bascule automatique, retour automatique, faible latence et fonctionnement sans iPhone.
 
 Technologie ouverte : CVBS / AHD / USB UVC.
 
 Document : `docs/REVERSE_CAMERA.md`.
 
-## 14. CAN véhicule / architecture finale
+## 13. CAN véhicule / architecture finale
 
 Architecture finale envisagée :
 
@@ -417,13 +376,13 @@ Pi SPI → MCP2518FD #1 → transceiver → CAN véhicule
 Pi SPI → MCP2518FD #2 → transceiver → CAN secondaire / multimédia
 ```
 
-La présence du `PCA82C250` dans le CSW confirme qu’au moins la commande centrale utilise physiquement un **bus CAN** et renforce l’intérêt du second canal CAN.
+La présence du PCA82C250 dans le CSW confirme l’intérêt du second canal CAN pour le réseau multimédia.
 
-Règles : écoute passive d’abord, aucune émission active avant compréhension, attention aux terminaisons 120 Ω.
+Règles : écoute passive d’abord, aucune émission active avant compréhension, aucune terminaison supplémentaire sans validation de la topologie.
 
 Document : `docs/CAN_RESEARCH.md`.
 
-## 15. Alimentation automobile
+## 14. Alimentation automobile
 
 ```text
 12 V véhicule
@@ -436,23 +395,13 @@ ACC/contact : détection protégée, shutdown Linux propre, temporisation, coupu
 
 Document : `docs/POWER.md`.
 
-## 16. PCB final
+## 15. PCB final
 
-Objectif : une carte unique Espace IV intégrant :
-
-- RP2040 ;
-- MFi + load-switch ;
-- double CAN ;
-- K-Line optionnelle ;
-- reverse ;
-- ACC/illumination ;
-- protections ;
-- connecteurs ;
-- points de test.
+Objectif : une carte unique Espace IV intégrant RP2040, MFi + load-switch, double CAN, K-Line optionnelle, reverse, ACC/illumination, protections, connecteurs et points de test.
 
 Ne pas lancer PCB V1 tant que commandes, MFi, alimentation et stratégie écran ne sont pas suffisamment validés.
 
-## 17. Priorités actuelles
+## 16. Priorités actuelles
 
 ### P0-A — CSW-2000R
 
@@ -464,18 +413,18 @@ CANH = pins 5 et 6
 CANL = pins 11 et 12
 CAN transceiver = PCA82C250
 CAN = CONFIRMED
-CANH/CANL = MEASURED
+R(CANH,CANL) = 37 kΩ
+local 120 Ω termination = ABSENT
 ```
 
 Prochaines étapes :
 
-1. mesurer la résistance entre CANH et CANL pour vérifier une éventuelle terminaison ;
-2. suivre `PCA82C250 pin 3` vers le rail 5 V ;
-3. identifier le régulateur et l’entrée positive CN1 ;
-4. suivre TXD/RXD vers le MCU ;
-5. alimenter en labo avec limitation de courant ;
-6. déterminer bitrate CAN ;
-7. capturer trames boutons / joystick / rotation.
+1. suivre `PCA82C250 pin 3` vers le rail 5 V ;
+2. identifier le régulateur et l’entrée positive CN1 ;
+3. suivre TXD/RXD vers le MCU ;
+4. alimenter en labo avec limitation de courant ;
+5. déterminer bitrate CAN ;
+6. capturer trames boutons / joystick / rotation.
 
 ### P0-B — banc LIVI / CarPlay
 
@@ -506,35 +455,23 @@ Prochaines étapes :
 - télémétrie CAN avancée ;
 - ELS27 uniquement si nécessaire.
 
-## 18. Achats court terme
+## 17. Achats court terme
 
 Voir `BOM.md`.
 
-Actuellement :
+Actuellement : écran 7" à sélectionner, RP2040 prototype, MFi `MFI343S00177-L`, passifs MFi, load-switch MFi et petit matériel de laboratoire.
 
-- écran 7" à sélectionner ;
-- RP2040 prototype ;
-- MFi `MFI343S00177-L` ;
-- passifs MFi ;
-- load-switch MFi à sélectionner ;
-- petit matériel de laboratoire.
-
-## 19. Prochaine action concrète
+## 18. Prochaine action concrète
 
 ### CSW
 
-**Carte hors tension et module débranché du véhicule.**
+**Carte hors tension.**
 
-Mesurer la résistance entre :
+La terminaison CAN est désormais vérifiée : `37 kΩ`, donc pas de `120 Ω` locale.
 
-```text
-CANH = CN1-5/6
-CANL = CN1-11/12
-```
+Prochaine étape : suivre `PCA82C250 pin 3 = VCC 5 V` vers l’étage d’alimentation, identifier le régulateur puis remonter jusqu’à la broche positive de `CN1`.
 
-Noter la valeur stabilisée pour déterminer si le CSW possède une terminaison CAN locale.
-
-Puis suivre `PCA82C250 pin 3 = VCC 5 V` vers l’alimentation.
+Ne pas alimenter le module avant identification certaine de cette entrée.
 
 ### En parallèle
 
