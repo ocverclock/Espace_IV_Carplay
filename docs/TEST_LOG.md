@@ -200,9 +200,75 @@ Document détaillé : `docs/CSW2000R.md`.
 9. écoute CAN passive et détermination du bitrate ;
 10. captures trames par bouton / joystick / rotation.
 
+## 2026-09-04 — Commande au volant 7701049643
+
+Pièce :
+
+```text
+Renault 7701049643
+34442201AF
+connecteur 6 voies
+```
+
+Convention utilisateur, détrompeur à droite :
+
+```text
+1  2  3
+4  5  6
+```
+
+Couleurs relevées :
+
+```text
+1 blanc
+2 pourpre / violet
+3 beige
+4 marron
+5 orange
+6 gris
+```
+
+### Boutons
+
+Mesures de continuité :
+
+```text
+A volume −        = 4 + 6
+B volume +        = 4 + 1
+C source −        = 3 + 5
+D source +        = 6 + 5
+E bouton inférieur = 2 + 4
+```
+
+Correction utilisateur : `D = source +` est `6 + 5`; l'ancien relevé `2 + 5` est invalide.
+
+Fonction exacte du bouton inférieur `E` : **TBD**.
+
+### Molette
+
+- molette non cliquable ;
+- `pin 2` = commun permanent ;
+- séquence mesurée dans un sens :
+
+```text
+2+6 → 2+3 → 2+1
+```
+
+- sens inverse : séquence inverse :
+
+```text
+2+1 → 2+3 → 2+6
+```
+
+Conclusion : commande **passive par contacts secs** ; la direction de la molette est décodable par ordre des états, sans conversion analogique.
+
+Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
+
+Document détaillé : `docs/STEERING_REMOTE.md`.
+
 ## Prochains tests commande volant
 
-- inspection / ouverture si nécessaire ;
-- cartographie des 6 broches ;
-- boutons ;
-- décodage molette.
+1. identifier la fonction OEM du bouton inférieur ;
+2. associer le sens fonctionnel de la molette à la séquence `6 → 3 → 1` ;
+3. vérifier les transitions rapides / rebonds ;
+4. préparer la lecture numérique par RP2040.
