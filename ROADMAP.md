@@ -9,14 +9,26 @@
 - [x] câblage MFi documenté
 
 ## M1 — Reverse engineering commandes
-- [ ] recevoir `CSW-2000R`
+
+### M1.1 — CSW-2000R
+- [x] recevoir `CSW-2000R`
+- [x] ouvrir sans destruction
+- [x] photos PCB / face boutons
+- [x] confirmer connecteur `CN1` 12 voies (2 × 6)
+- [ ] photo CN1 strictement de face et numérotation 1–12 verrouillée
+- [ ] cartographie hors tension des 12 broches
+- [ ] identification exacte MCU NEC / `IC3` / étage d'entrée
+- [ ] identifier GND et alimentation
+- [ ] première alimentation labo limitée en courant
+- [ ] protocole CSW identifié ou décision de bypass
+
+### M1.2 — commande au volant
 - [ ] recevoir `7701049643`
-- [ ] photos recto/verso
+- [ ] photos / inspection
 - [ ] cartographie 6 broches commodo
 - [ ] décodage complet de la molette
-- [ ] brochage CSW
-- [ ] identification des IC du CSW
-- [ ] protocole CSW identifié ou décision de bypass
+
+### M1.3 — interface Linux
 - [ ] prototype USB HID sur RP2040
 
 ## M2 — LIVI / CarPlay sur établi
