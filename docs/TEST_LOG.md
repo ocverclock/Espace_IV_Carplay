@@ -157,10 +157,10 @@ Mesures utilisateur :
 
 - `C3 47 µF / 16 V` est raccordé sur le rail qui alimente `PCA82C250 pin 3 = VCC` ;
 - ce rail est la sortie de l'étage autour de `IC1` ;
-- le PCA82C250 étant alimenté nominalement en 5 V, ce rail est le rail logique ≈5 V.
+- le PCA82C250 étant alimenté nominalement en 5 V, ce rail est attendu autour de 5 V en fonctionnement normal.
 
 ```text
-C3+ → rail logique ≈5 V → PCA82C250 pin 3
+C3+ → rail logique attendu ≈5 V → PCA82C250 pin 3
 ```
 
 ### Q1 / IC1 — correction de topologie
@@ -178,7 +178,7 @@ est donc considéré **non démontré**.
 État de travail :
 
 ```text
-CN1-7 → D1 → C25 220 µF / 25 V → étage Q1 / IC1 à déterminer → C3 → rail ≈5 V → PCA82C250 pin 3
+CN1-7 → D1 → C25 220 µF / 25 V → étage Q1 / IC1 à déterminer → C3 → rail attendu ≈5 V → PCA82C250 pin 3
 ```
 
 Fonction exacte de `Q1` : **TBD**. Hypothèses possibles : transistor série / pass transistor, interrupteur high-side, ou transistor de commande de l'étage IC1.
@@ -213,25 +213,38 @@ Corrélation avec nos mesures :
 
 Statut : **EXTERNAL DOCUMENTATION CORROBORATED BY BENCH MEASUREMENTS — 2026-09-04**.
 
-Ce résultat change la priorité alimentation : tracer d'abord `CN1-1 = 34HU réveil multimédia` vers l'étage `Q1 / IC1`.
+### Premier essai d'alimentation / wake sur banc
 
-**Ne pas appliquer 12 V tant que le fonctionnement du wake et de l'étage Q1/IC1 n'est pas suffisamment établi.**
+Essai utilisateur :
+
+- alimentation branchée sur les deux pads d'alimentation près de CN1 ;
+- alimentation marquée `12 V`, mais tension réellement mesurée à vide / au banc : **16 V** ;
+- wake appliqué via la résistance série proposée ;
+- le « second condensateur » a alors été mesuré à **11,3 V** ; l'identité exacte de ce condensateur doit être confirmée avant interprétation définitive.
+
+**Important : essai à arrêter et ne pas répéter avec cette alimentation 16 V.**
+
+Si le « second condensateur » est bien `C3`, cette mesure est anormale et incompatible avec le rail nominal 5 V attendu sur `PCA82C250 pin 3`. Le PCA82C250 fonctionne normalement avec `VCC = 4,5 à 5,5 V`; sa limite absolue de VCC est 9 V. Une mesure de 11,3 V sur le même net imposerait donc un risque réel de dommage.
+
+Statut : **MEASURED / TEST INCONCLUSIVE — OVERVOLTAGE SOURCE — 2026-09-04**.
+
+Prochaine étape avant toute nouvelle mise sous tension :
+
+1. confirmer si le condensateur mesuré à `11,3 V` est bien `C3` ;
+2. vérifier que la source utilisée est bien **DC** et non AC ;
+3. utiliser ensuite une alimentation DC régulée, idéalement de laboratoire, réglée autour de `9 V` avec limitation de courant ;
+4. mesurer séparément `C25+`, `C3+` et `PCA82C250 pin 3` avant et après wake.
 
 Document détaillé : `docs/CSW2000R.md`.
 
 ## Prochains tests CSW-2000R
 
-1. tracer `CN1-1 = 34HU` vers `Q1`, `IC1` et les résistances associées ;
-2. cartographier les trois broches de `Q1` ;
-3. relever `C25+ → Q1 pin ?` ;
-4. relever `C3+ → Q1 pin ?` si une liaison existe ;
-5. suivre chaque broche de `Q1` vers `IC1` ;
-6. relever les marquages exacts de `Q1` et `IC1` si possible ;
-7. suivre ensuite le rail 5 V vers le MCU ;
-8. suivre `TXD pin 1` et `RXD pin 4` vers le MCU NEC ;
-9. seulement après validation de l'alimentation : alimentation de laboratoire limitée en courant ;
-10. écoute CAN passive et détermination du bitrate ;
-11. captures trames par bouton / joystick / rotation.
+1. confirmer l'identité du condensateur ayant mesuré `11,3 V` ;
+2. ne plus utiliser la source nominale 12 V qui délivre 16 V ;
+3. reprendre avec une alimentation DC régulée limitée en courant ;
+4. mesurer `C25+`, `C3+`, `PCA82C250 pin 3` avant/après `CN1-1 = 34HU` ;
+5. tracer `CN1-1 = 34HU` vers `Q1`, `IC1` et les résistances associées si le 5 V reste absent ;
+6. seulement après validation du rail 5 V : écoute CAN et détermination du bitrate.
 
 ## 2026-09-04 — Commande au volant 7701049643
 
