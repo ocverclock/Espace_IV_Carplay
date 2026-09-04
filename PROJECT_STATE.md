@@ -160,47 +160,86 @@ Interprétation : le CSW **ne possède pas de terminaison CAN fixe locale de 120
 
 Conséquence : ne pas ajouter arbitrairement `120 Ω` au niveau du CSW. La terminaison doit rester conforme à la topologie réelle du réseau et uniquement aux extrémités prévues.
 
+### Brochage véhicule documenté — composant Renault 1657
+
+Le composant Renault `1657` est documenté comme clavier / contrôleur multimédia de l'Espace IV.
+
+Le brochage externe retrouvé donne :
+
+```text
+CN1-1  = 34HU  = réveil multimédia
+CN1-5  = 107W  = ligne multimédia H
+CN1-6  = 34DZ  = ligne multimédia 1
+CN1-7  = BCP4  = + batterie protégé / mémoire
+CN1-8  = MV    = masse audiosystème
+CN1-9  = 19E   = rhéostat / éclairage
+CN1-10 = LPG   = + veilleuses / position protégé
+CN1-11 = 107X  = ligne multimédia L
+CN1-12 = 34GA  = ligne multimédia 1
+```
+
+Les pins `2`, `3` et `4` ne sont pas listées comme conducteurs utilisés dans le faisceau externe consulté.
+
+Corrélation avec notre carte :
+
+- `CN1-5/6` sont un même net **CANH** mesuré ;
+- `CN1-11/12` sont un même net **CANL** mesuré ;
+- `CN1-7 = BCP4` confirme le chemin d'alimentation mesuré vers `D1 → C25` ;
+- `CN1-1 = 34HU` identifie désormais le **réveil multimédia** ;
+- `CN1-9` et `CN1-10` sont des lignes d'éclairage / rétroéclairage.
+
+Statut : **EXTERNAL WIRING DOCUMENTATION CORROBORATED BY BENCH MEASUREMENTS — 2026-09-04**.
+
 ### Alimentation — état actuel
 
 Le chemin mesuré côté entrée est :
 
 ```text
-CN1-7 → D1 → C25 220 µF / 25 V
+CN1-7 = BCP4 + batterie protégé
+  │
+  ▼
+ D1
+  │
+  ▼
+C25 220 µF / 25 V
+  │
+  ▼
+étage Q1 / IC1 TBD
+  │             ▲
+  │             │
+  │       CN1-1 = 34HU
+  │       réveil multimédia
+  ▼
+C3 47 µF / 16 V
+  │
+  └──► ≈5 V → PCA82C250 pin 3
 ```
 
-- `CN1-7` rejoint le rail de `C25` à travers `D1` ;
 - `Vf(D1) = 0,551 V` en mode diode ;
 - `C25-` est à la masse `CN1-2/8` ;
 - `C3 47 µF / 16 V` est sur le rail qui alimente `PCA82C250 pin 3`, donc rail logique ≈5 V ;
 - le chemin entre `C25` et `C3` implique l’étage `Q1 / IC1`, dont la topologie exacte reste à déterminer ;
+- le lien exact entre `CN1-1 = 34HU` et `Q1/IC1` n'est pas encore mesuré ;
 - l’ancien raccourci `C25 → IC1 → 5 V` est invalidé car non démontré.
 
-État de travail :
-
-```text
-CN1-7 → D1 → C25 → étage Q1 / IC1 TBD → C3 → ≈5 V → PCA82C250 pin 3
-```
-
-`CN1-7` est donc un **très fort candidat pour l’entrée positive d’alimentation**, mais sa tension nominale côté véhicule reste à confirmer.
-
-**Ne pas appliquer 12 V tant que la topologie Q1/IC1 et la plage d'entrée admissible ne sont pas suffisamment établies.**
+**Ne pas alimenter arbitrairement le module tant que le rôle du wake et la topologie Q1/IC1 ne sont pas suffisamment établis.**
 
 ### Table CN1 actuelle
 
 | Pin | Fonction / net | Statut |
 |---:|---|---|
-| 1 | TBD | non mesuré |
-| 2 | **GND** | MEASURED |
-| 3 | TBD | non mesuré |
-| 4 | TBD | non mesuré |
-| 5 | **CANH**, relié à 6 | MEASURED |
-| 6 | **CANH**, relié à 5 | MEASURED |
-| 7 | **entrée alimentation probable via D1 → C25** | MEASURED PATH / tension à confirmer |
-| 8 | **GND** | MEASURED |
-| 9 | TBD | non mesuré |
-| 10 | TBD | non mesuré |
-| 11 | **CANL**, relié à 12 | MEASURED |
-| 12 | **CANL**, relié à 11 | MEASURED |
+| 1 | **34HU — réveil multimédia** | DOCUMENTED / à tracer sur PCB |
+| 2 | **GND sur PCB** | MEASURED ; non listé comme fil faisceau externe |
+| 3 | non utilisé dans pinout externe consulté / PCB TBD | TBD |
+| 4 | non utilisé dans pinout externe consulté / PCB TBD | TBD |
+| 5 | **107W / CANH**, relié à 6 | MEASURED + DOCUMENTED |
+| 6 | **34DZ / CANH**, relié à 5 | MEASURED + DOCUMENTED |
+| 7 | **BCP4 + batterie protégé → D1 → C25** | MEASURED + DOCUMENTED |
+| 8 | **MV / GND** | MEASURED + DOCUMENTED |
+| 9 | **19E — rhéostat / éclairage** | DOCUMENTED |
+| 10 | **LPG — + veilleuses / position** | DOCUMENTED |
+| 11 | **107X / CANL**, relié à 12 | MEASURED + DOCUMENTED |
+| 12 | **34GA / CANL**, relié à 11 | MEASURED + DOCUMENTED |
 
 ### MCU
 
@@ -461,27 +500,32 @@ Ne pas lancer PCB V1 tant que commandes, MFi, alimentation et stratégie écran 
 État :
 
 ```text
-GND = pins 2 et 8
+GND PCB = pins 2 et 8
 CANH = pins 5 et 6
 CANL = pins 11 et 12
 CAN transceiver = PCA82C250
 CAN = CONFIRMED
 R(CANH,CANL) = 37 kΩ
 local 120 Ω termination = ABSENT
-CN1-7 → D1 → C25 = measured power path
+CN1-1 = 34HU wake multimedia DOCUMENTED
+CN1-7 = BCP4 + battery protected DOCUMENTED
+CN1-7 → D1 → C25 = MEASURED
+CN1-9 = rheostat / illumination DOCUMENTED
+CN1-10 = side-light + DOCUMENTED
 C3 → PCA82C250 VCC ≈ 5 V
 Q1 / IC1 topology = TBD
 ```
 
 Prochaines étapes :
 
-1. cartographier les trois broches de `Q1` ;
-2. suivre `C25+ → Q1` puis `Q1 ↔ IC1` ;
-3. identifier les marquages exacts `Q1` / `IC1` si possible ;
-4. suivre TXD/RXD vers le MCU ;
-5. seulement après validation de l’alimentation : alimentation labo limitée en courant ;
-6. déterminer bitrate CAN ;
-7. capturer trames boutons / joystick / rotation.
+1. tracer `CN1-1 = 34HU` vers `Q1 / IC1` ;
+2. cartographier les trois broches de `Q1` ;
+3. suivre `C25+ → Q1` puis `Q1 ↔ IC1` ;
+4. identifier les marquages exacts `Q1` / `IC1` si possible ;
+5. suivre TXD/RXD vers le MCU ;
+6. seulement après validation de l’alimentation : alimentation labo limitée en courant ;
+7. déterminer bitrate CAN ;
+8. capturer trames boutons / joystick / rotation.
 
 ### P0-B — banc LIVI / CarPlay
 
@@ -527,9 +571,9 @@ Actuellement : écran 7" à sélectionner, RP2040 prototype, MFi `MFI343S00177-L
 
 **Carte hors tension.**
 
-Cartographier `Q1` : déterminer quelle patte rejoint `C25+`, quelles pattes rejoignent `IC1` et si une liaison existe vers `C3+`.
+Tracer en priorité `CN1-1 = 34HU réveil multimédia` vers `Q1`, `IC1` et les résistances associées. Ensuite cartographier `Q1` : déterminer quelle patte rejoint `C25+`, quelles pattes rejoignent `IC1` et si une liaison existe vers `C3+`.
 
-Ne pas alimenter le module avant compréhension suffisante de cet étage.
+Ne pas alimenter le module avant compréhension suffisante de cet étage et du signal wake.
 
 ### Commande au volant
 
