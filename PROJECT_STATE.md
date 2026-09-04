@@ -190,7 +190,7 @@ Corrélation avec notre carte :
 
 Statut : **EXTERNAL WIRING DOCUMENTATION CORROBORATED BY BENCH MEASUREMENTS — 2026-09-04**.
 
-### Alimentation — état actuel
+### Alimentation — validée sur banc
 
 Le chemin mesuré côté entrée est :
 
@@ -204,7 +204,7 @@ CN1-7 = BCP4 + batterie protégé
 C25 220 µF / 25 V
   │
   ▼
-étage Q1 / IC1 TBD
+étage Q1 / IC1
   │             ▲
   │             │
   │       CN1-1 = 34HU
@@ -212,29 +212,38 @@ C25 220 µF / 25 V
   ▼
 C3 47 µF / 16 V
   │
-  └──► ≈5 V → PCA82C250 pin 3
+  └──► 5 V → PCA82C250 pin 3
 ```
 
-- `Vf(D1) = 0,551 V` en mode diode ;
-- `C25-` est à la masse `CN1-2/8` ;
-- `C3 47 µF / 16 V` est sur le rail qui alimente `PCA82C250 pin 3`, donc rail logique ≈5 V ;
-- le chemin entre `C25` et `C3` implique l’étage `Q1 / IC1`, dont la topologie exacte reste à déterminer ;
-- le lien exact entre `CN1-1 = 34HU` et `Q1/IC1` n'est pas encore mesuré ;
-- l’ancien raccourci `C25 → IC1 → 5 V` est invalidé car non démontré.
+Mesures acquises :
 
-**Ne pas alimenter arbitrairement le module tant que le rôle du wake et la topologie Q1/IC1 ne sont pas suffisamment établis.**
+```text
+Vf(D1) = 0,551 V
+alimentation principale = 12,5 V
+wake CN1-1 / 34HU = appliqué via résistance série
+C3+ = 5,0 V
+```
+
+- `C25-` est à la masse `CN1-2/8` ;
+- `C3` est sur le rail qui alimente `PCA82C250 pin 3` ;
+- le rail interne 5 V est donc correctement régulé sous une alimentation principale à `12,5 V` avec wake appliqué ;
+- les anciennes valeurs `16 V` / `11,3 V` étaient une erreur de mesure et sont invalidées ;
+- la topologie exacte de `Q1 / IC1` reste TBD mais n'est plus bloquante pour l'analyse CAN ;
+- pour prouver isolément le rôle du wake, il reste utile de comparer `C3` avec `CN1-1` déconnecté puis connecté, alimentation principale maintenue à `12,5 V`.
+
+Statut alimentation : **BENCH POWER VALIDATED — 2026-09-04**.
 
 ### Table CN1 actuelle
 
 | Pin | Fonction / net | Statut |
 |---:|---|---|
-| 1 | **34HU — réveil multimédia** | DOCUMENTED / à tracer sur PCB |
+| 1 | **34HU — réveil multimédia** | DOCUMENTED + BENCH FUNCTION CORROBORATED |
 | 2 | **GND sur PCB** | MEASURED ; non listé comme fil faisceau externe |
 | 3 | non utilisé dans pinout externe consulté / PCB TBD | TBD |
 | 4 | non utilisé dans pinout externe consulté / PCB TBD | TBD |
 | 5 | **107W / CANH**, relié à 6 | MEASURED + DOCUMENTED |
 | 6 | **34DZ / CANH**, relié à 5 | MEASURED + DOCUMENTED |
-| 7 | **BCP4 + batterie protégé → D1 → C25** | MEASURED + DOCUMENTED |
+| 7 | **BCP4 + batterie protégé → D1 → C25** | MEASURED + DOCUMENTED + 12,5 V BENCH VALIDATED |
 | 8 | **MV / GND** | MEASURED + DOCUMENTED |
 | 9 | **19E — rhéostat / éclairage** | DOCUMENTED |
 | 10 | **LPG — + veilleuses / position** | DOCUMENTED |
@@ -510,22 +519,24 @@ local 120 Ω termination = ABSENT
 CN1-1 = 34HU wake multimedia DOCUMENTED
 CN1-7 = BCP4 + battery protected DOCUMENTED
 CN1-7 → D1 → C25 = MEASURED
+bench main supply = 12,5 V
+wake applied via series resistor
+C3 rail = 5,0 V MEASURED
+power stage = BENCH VALIDATED
 CN1-9 = rheostat / illumination DOCUMENTED
 CN1-10 = side-light + DOCUMENTED
-C3 → PCA82C250 VCC ≈ 5 V
-Q1 / IC1 topology = TBD
+Q1 / IC1 exact topology = TBD / non-blocking
 ```
 
 Prochaines étapes :
 
-1. tracer `CN1-1 = 34HU` vers `Q1 / IC1` ;
-2. cartographier les trois broches de `Q1` ;
-3. suivre `C25+ → Q1` puis `Q1 ↔ IC1` ;
-4. identifier les marquages exacts `Q1` / `IC1` si possible ;
-5. suivre TXD/RXD vers le MCU ;
-6. seulement après validation de l’alimentation : alimentation labo limitée en courant ;
-7. déterminer bitrate CAN ;
-8. capturer trames boutons / joystick / rotation.
+1. confirmer `PCA82C250 pin 3 ≈ 5 V` ;
+2. relever la consommation totale du module à `12,5 V` ;
+3. préparer la terminaison CAN de banc ;
+4. déterminer bitrate CAN ;
+5. capturer trames au repos ;
+6. capturer boutons / joystick / rotation ;
+7. cartographier Q1/IC1 plus tard si utile.
 
 ### P0-B — banc LIVI / CarPlay
 
@@ -569,11 +580,11 @@ Actuellement : écran 7" à sélectionner, RP2040 prototype, MFi `MFI343S00177-L
 
 ### CSW
 
-**Carte hors tension.**
+Le premier état d'alimentation exploitable est acquis : `12,5 V` sur l'alimentation principale, wake `34HU` via résistance série, et `5,0 V` sur `C3`.
 
-Tracer en priorité `CN1-1 = 34HU réveil multimédia` vers `Q1`, `IC1` et les résistances associées. Ensuite cartographier `Q1` : déterminer quelle patte rejoint `C25+`, quelles pattes rejoignent `IC1` et si une liaison existe vers `C3+`.
+Prochaine action : confirmer `PCA82C250 pin 3 ≈ 5 V`, relever la consommation du module si possible, puis préparer l'écoute CAN avec terminaison de banc correcte et recherche du bitrate.
 
-Ne pas alimenter le module avant compréhension suffisante de cet étage et du signal wake.
+Pour isoler complètement le wake, mesurer à l'occasion `C3` avec `CN1-1` déconnecté puis reconnecté, alimentation principale maintenue.
 
 ### Commande au volant
 
