@@ -210,24 +210,50 @@ Mesures correctes :
 alimentation principale = 12,5 V
 wake CN1-1 / 34HU = appliqué via résistance série
 C3+ = 5,0 V
+PCA82C250 pin 3 = 5,0 V
 ```
 
 Conclusion : l'étage interne fournit correctement son rail 5 V lorsque le module est alimenté à `12,5 V` et que le wake est appliqué.
 
 Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
 
-Pour isoler définitivement le rôle du wake, il reste utile de mesurer `C3` avec `CN1-1` déconnecté puis reconnecté, tout en conservant `12,5 V` sur l'alimentation principale.
+### Niveaux CAN au repos
 
-Le module est désormais suffisamment validé côté alimentation pour préparer l'écoute CAN.
+Sous la même alimentation, module réveillé :
+
+```text
+CANH ≈ 2,5 V
+CANL ≈ 2,5 V
+```
+
+Ces niveaux sont cohérents avec le PCA82C250 alimenté et le bus au repos / état récessif.
+
+Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
+
+### Validation du rétroéclairage
+
+Essai utilisateur :
+
+```text
+pont direct CN1-7 → CN1-10
+```
+
+Résultat : **les LEDs / le rétroéclairage de la commande centrale s'allument**.
+
+Conclusion : `CN1-10 = LPG` est bien l'entrée positive d'éclairage. `CN1-9 = 19E` reste à tester pour son rôle exact de rhéostat / niveau de luminosité.
+
+Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
+
+Le module est désormais suffisamment validé côté alimentation, wake, transceiver CAN et éclairage pour préparer l'écoute CAN.
 
 ## Prochains tests CSW-2000R
 
-1. vérifier `PCA82C250 pin 3 ≈ 5 V` sous wake ;
-2. relever la consommation totale du module à `12,5 V` si possible ;
-3. connecter CANH/CANL avec terminaison de banc adaptée ;
-4. déterminer le bitrate CAN ;
-5. capturer le trafic au repos ;
-6. capturer ensuite chaque bouton / joystick / rotation ;
+1. relever la consommation totale du module à `12,5 V` si possible ;
+2. connecter CANH/CANL avec terminaison de banc adaptée ;
+3. déterminer le bitrate CAN ;
+4. capturer le trafic au repos ;
+5. capturer ensuite chaque bouton / joystick / rotation ;
+6. tester `CN1-9 = 19E` plus tard si l'on veut reproduire la variation de luminosité ;
 7. aucune émission applicative avant compréhension du protocole.
 
 ## 2026-09-04 — Commande au volant 7701049643
