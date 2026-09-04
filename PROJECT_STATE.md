@@ -160,6 +160,31 @@ Interprétation : le CSW **ne possède pas de terminaison CAN fixe locale de 120
 
 Conséquence : ne pas ajouter arbitrairement `120 Ω` au niveau du CSW. La terminaison doit rester conforme à la topologie réelle du réseau et uniquement aux extrémités prévues.
 
+### Alimentation — état actuel
+
+Le chemin mesuré côté entrée est :
+
+```text
+CN1-7 → D1 → C25 220 µF / 25 V
+```
+
+- `CN1-7` rejoint le rail de `C25` à travers `D1` ;
+- `Vf(D1) = 0,551 V` en mode diode ;
+- `C25-` est à la masse `CN1-2/8` ;
+- `C3 47 µF / 16 V` est sur le rail qui alimente `PCA82C250 pin 3`, donc rail logique ≈5 V ;
+- le chemin entre `C25` et `C3` implique l’étage `Q1 / IC1`, dont la topologie exacte reste à déterminer ;
+- l’ancien raccourci `C25 → IC1 → 5 V` est invalidé car non démontré.
+
+État de travail :
+
+```text
+CN1-7 → D1 → C25 → étage Q1 / IC1 TBD → C3 → ≈5 V → PCA82C250 pin 3
+```
+
+`CN1-7` est donc un **très fort candidat pour l’entrée positive d’alimentation**, mais sa tension nominale côté véhicule reste à confirmer.
+
+**Ne pas appliquer 12 V tant que la topologie Q1/IC1 et la plage d'entrée admissible ne sont pas suffisamment établies.**
+
 ### Table CN1 actuelle
 
 | Pin | Fonction / net | Statut |
@@ -170,7 +195,7 @@ Conséquence : ne pas ajouter arbitrairement `120 Ω` au niveau du CSW. La termi
 | 4 | TBD | non mesuré |
 | 5 | **CANH**, relié à 6 | MEASURED |
 | 6 | **CANH**, relié à 5 | MEASURED |
-| 7 | TBD | non mesuré |
+| 7 | **entrée alimentation probable via D1 → C25** | MEASURED PATH / tension à confirmer |
 | 8 | **GND** | MEASURED |
 | 9 | TBD | non mesuré |
 | 10 | TBD | non mesuré |
@@ -183,17 +208,9 @@ MCU principal NEC Japan en QFP + quartz `X1` visibles.
 
 Le marquage semble compatible avec une famille Renesas/NEC `78K0/Kx2`, possiblement `µPD78F052xA`, mais la référence exacte n’est pas encore verrouillée.
 
-### Alimentation
-
-Le `PCA82C250` confirme l’existence d’un rail interne **5 V**.
-
-L’entrée positive côté `CN1` et sa tension véhicule ne sont **pas encore identifiées**.
-
-**Ne pas appliquer 12 V tant que ce chemin n’est pas tracé.**
-
 Document détaillé : `docs/CSW2000R.md`.
 
-## 5. Commande au volant
+## 5. Commande au volant — reverse engineering acquis
 
 Référence :
 
@@ -203,14 +220,48 @@ Renault 7701049643
 connecteur 6 voies
 ```
 
-État :
+Convention de mesure utilisateur, détrompeur à droite :
 
-- pièce achetée ;
-- reverse engineering à faire ;
-- probablement passive / contacts-matrice ;
-- molette obligatoire dans la reproduction.
+```text
+1  2  3
+4  5  6
+```
 
-Plan : inspection, cartographie des 6 broches, boutons, molette, puis prototype RP2040 USB HID.
+Couleurs :
+
+```text
+1 blanc
+2 pourpre / violet
+3 beige
+4 marron
+5 orange
+6 gris
+```
+
+### Boutons
+
+```text
+volume −         = 4 + 6
+volume +         = 4 + 1
+source −         = 3 + 5
+source +         = 6 + 5
+bouton inférieur = 2 + 4
+```
+
+La fonction OEM exacte du bouton inférieur reste inconnue.
+
+### Molette
+
+- non cliquable ;
+- `pin 2` = commun permanent ;
+- séquence mesurée dans un sens : `2+6 → 2+3 → 2+1` ;
+- sens inverse : `2+1 → 2+3 → 2+6`.
+
+Conclusion : **commande passive par contacts secs**, y compris la molette. La direction peut être décodée par l’ordre des états.
+
+Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
+
+Conséquence : lecture directe par RP2040 réaliste, avec entrées numériques, pull-ups/pull-downs adaptés et debounce logiciel. Pas de conversion analogique requise à ce stade.
 
 Documents :
 
@@ -347,6 +398,8 @@ Document : `docs/DISPLAY.md`.
 
 Rôle prévu : commande au volant, debounce, molette, reverse, ACC/illumination et USB HID vers Pi.
 
+La commande au volant étant maintenant cartographiée comme contacts secs, son interface RP2040 devient simple à prototyper.
+
 Pour le CSW, le RP2040 n’est plus la voie principale tant que le décodage CAN d’origine reste réaliste.
 
 ## 11. Audio / mains libres
@@ -415,16 +468,20 @@ CAN transceiver = PCA82C250
 CAN = CONFIRMED
 R(CANH,CANL) = 37 kΩ
 local 120 Ω termination = ABSENT
+CN1-7 → D1 → C25 = measured power path
+C3 → PCA82C250 VCC ≈ 5 V
+Q1 / IC1 topology = TBD
 ```
 
 Prochaines étapes :
 
-1. suivre `PCA82C250 pin 3` vers le rail 5 V ;
-2. identifier le régulateur et l’entrée positive CN1 ;
-3. suivre TXD/RXD vers le MCU ;
-4. alimenter en labo avec limitation de courant ;
-5. déterminer bitrate CAN ;
-6. capturer trames boutons / joystick / rotation.
+1. cartographier les trois broches de `Q1` ;
+2. suivre `C25+ → Q1` puis `Q1 ↔ IC1` ;
+3. identifier les marquages exacts `Q1` / `IC1` si possible ;
+4. suivre TXD/RXD vers le MCU ;
+5. seulement après validation de l’alimentation : alimentation labo limitée en courant ;
+6. déterminer bitrate CAN ;
+7. capturer trames boutons / joystick / rotation.
 
 ### P0-B — banc LIVI / CarPlay
 
@@ -437,13 +494,16 @@ Prochaines étapes :
 7. CarPlay filaire ;
 8. audio/micro/Siri.
 
-### P1
+### P1 — commande au volant
 
-- commande au volant ;
-- écran final ;
-- caméra ;
-- audio ;
-- alimentation automobile.
+Cartographie électrique acquise. Reste :
+
+1. fonction du bouton inférieur ;
+2. sens fonctionnel de la molette ;
+3. test rebonds / transitions rapides ;
+4. prototype RP2040.
+
+Autres P1 : écran final, caméra, audio, alimentation automobile.
 
 ### P2
 
@@ -467,11 +527,13 @@ Actuellement : écran 7" à sélectionner, RP2040 prototype, MFi `MFI343S00177-L
 
 **Carte hors tension.**
 
-La terminaison CAN est désormais vérifiée : `37 kΩ`, donc pas de `120 Ω` locale.
+Cartographier `Q1` : déterminer quelle patte rejoint `C25+`, quelles pattes rejoignent `IC1` et si une liaison existe vers `C3+`.
 
-Prochaine étape : suivre `PCA82C250 pin 3 = VCC 5 V` vers l’étage d’alimentation, identifier le régulateur puis remonter jusqu’à la broche positive de `CN1`.
+Ne pas alimenter le module avant compréhension suffisante de cet étage.
 
-Ne pas alimenter le module avant identification certaine de cette entrée.
+### Commande au volant
+
+Le brochage passif est acquis. Prochaine validation utile : déterminer quel sens physique de la molette correspond à `2+6 → 2+3 → 2+1`, puis tester les rebonds avant implémentation RP2040.
 
 ### En parallèle
 
