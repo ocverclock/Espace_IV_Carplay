@@ -183,22 +183,55 @@ CN1-7 → D1 → C25 220 µF / 25 V → étage Q1 / IC1 à déterminer → C3 �
 
 Fonction exacte de `Q1` : **TBD**. Hypothèses possibles : transistor série / pass transistor, interrupteur high-side, ou transistor de commande de l'étage IC1.
 
-**Ne pas appliquer 12 V tant que la topologie Q1/IC1 et la plage d'entrée admissible ne sont pas suffisamment établies.**
+### Brochage externe retrouvé — composant Renault 1657
+
+Recherche documentaire sur le composant Renault `1657`, désigné clavier / contrôleur multimédia de l'Espace IV.
+
+Brochage véhicule publié pour Espace IV :
+
+```text
+CN1-1  = 34HU  = réveil multimédia
+CN1-5  = 107W  = ligne multimédia H
+CN1-6  = 34DZ  = ligne multimédia 1
+CN1-7  = BCP4  = + batterie protégé / mémoire
+CN1-8  = MV    = masse audiosystème
+CN1-9  = 19E   = rhéostat / éclairage
+CN1-10 = LPG   = + veilleuses / position protégé
+CN1-11 = 107X  = ligne multimédia L
+CN1-12 = 34GA  = ligne multimédia 1
+```
+
+Pins `2`, `3`, `4` non listées comme conducteurs utilisés dans le faisceau externe consulté.
+
+Corrélation avec nos mesures :
+
+- `CN1-7 = BCP4 + batterie protégé` confirme le chemin mesuré `CN1-7 → D1 → C25` ;
+- `CN1-1 = 34HU` identifie le **réveil multimédia**, à tracer maintenant vers `Q1 / IC1` ;
+- `CN1-5/6` sont les deux branches documentées côté H et sont effectivement un même net **CANH** sur notre carte ;
+- `CN1-11/12` sont les deux branches documentées côté L et sont effectivement un même net **CANL** sur notre carte ;
+- `CN1-9` et `CN1-10` concernent le rétroéclairage / éclairage véhicule.
+
+Statut : **EXTERNAL DOCUMENTATION CORROBORATED BY BENCH MEASUREMENTS — 2026-09-04**.
+
+Ce résultat change la priorité alimentation : tracer d'abord `CN1-1 = 34HU réveil multimédia` vers l'étage `Q1 / IC1`.
+
+**Ne pas appliquer 12 V tant que le fonctionnement du wake et de l'étage Q1/IC1 n'est pas suffisamment établi.**
 
 Document détaillé : `docs/CSW2000R.md`.
 
 ## Prochains tests CSW-2000R
 
-1. cartographier les trois broches de `Q1` ;
-2. relever `C25+ → Q1 pin ?` ;
-3. relever `C3+ → Q1 pin ?` si une liaison existe ;
-4. suivre chaque broche de `Q1` vers `IC1` ;
-5. relever les marquages exacts de `Q1` et `IC1` si possible ;
-6. suivre ensuite le rail 5 V vers le MCU ;
-7. suivre `TXD pin 1` et `RXD pin 4` vers le MCU NEC ;
-8. seulement après validation de l'alimentation : alimentation de laboratoire limitée en courant ;
-9. écoute CAN passive et détermination du bitrate ;
-10. captures trames par bouton / joystick / rotation.
+1. tracer `CN1-1 = 34HU` vers `Q1`, `IC1` et les résistances associées ;
+2. cartographier les trois broches de `Q1` ;
+3. relever `C25+ → Q1 pin ?` ;
+4. relever `C3+ → Q1 pin ?` si une liaison existe ;
+5. suivre chaque broche de `Q1` vers `IC1` ;
+6. relever les marquages exacts de `Q1` et `IC1` si possible ;
+7. suivre ensuite le rail 5 V vers le MCU ;
+8. suivre `TXD pin 1` et `RXD pin 4` vers le MCU NEC ;
+9. seulement après validation de l'alimentation : alimentation de laboratoire limitée en courant ;
+10. écoute CAN passive et détermination du bitrate ;
+11. captures trames par bouton / joystick / rotation.
 
 ## 2026-09-04 — Commande au volant 7701049643
 
