@@ -5,7 +5,7 @@ Journal chronologique des mesures et observations réalisées sur notre matérie
 ## 2026-08-31 — XTOOL A30M
 
 - connexion Bluetooth Linux réussie ;
-- périphérique : `A30M-WE86VF7`
+- périphérique : `A30M-WE86VF7` ;
 - Bluetooth Serial Port Profile présent ;
 - RFCOMM channel observé : 3 ;
 - commandes ELM `ATI/ATDP` non exploitables ;
@@ -13,19 +13,16 @@ Journal chronologique des mesures et observations réalisées sur notre matérie
 
 ## 2026-08-31 — ELM327 Wi-Fi ancien
 
-- PC : `192.168.0.11`
-- interface : `192.168.0.10`
-- TCP : `35000`
-- connexion TCP réussie ;
-- `ATI` → `ELM327 v1.5`
-- `ATDP` → `ISO 15765-4 (CAN 11/500)`
-- `010C` → `CAN ERROR`
-- `0105` → `CAN ERROR`
-- `010B` → `CAN ERROR`
+- PC : `192.168.0.11` ;
+- interface : `192.168.0.10` ;
+- TCP : `35000` ;
+- `ATI` → `ELM327 v1.5` ;
+- `ATDP` → `ISO 15765-4 CAN 11/500` ;
+- `010C`, `0105`, `010B` → `CAN ERROR`.
 
 Conclusion : interface non fiable pour la suite.
 
-## 2026-09-04 — CSW-2000R ouvert / inspection et reverse engineering
+## 2026-09-04 — CSW-2000R ouvert / reverse engineering
 
 Pièce :
 
@@ -36,55 +33,36 @@ Commande Centrale Multimedia
 Xanavi Informatics Corporation
 ```
 
-### Observations physiques
+### Connecteur CN1
 
-- boîtier ouvert sans destruction ;
-- PCB principal et face boutons photographiés ;
-- connecteur principal `CN1` = **12 contacts, 2 × 6** ;
+- `CN1` = **12 contacts, 2 × 6** ;
 - ancienne hypothèse « 6 voies » invalidée ;
-- microcontrôleur principal NEC Japan en QFP ;
-- quartz `X1` ;
-- électronique active avec protections / conditionnement près de CN1 ;
-- boutons `SWx`, LEDs et joystick central sur la carte avant.
-
-### Numérotation CN1 corrigée
-
-Vue dans `CN1`, détrompeur en bas :
+- numérotation confirmée sur la pièce, vue dans CN1 détrompeur en bas :
 
 ```text
 7  8  9 10 11 12
 1  2  3  4  5  6
 ```
 
-Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
+Statut : **MEASURED / USER CONFIRMED**.
 
-L'ancienne représentation avec `1..6` sur la rangée du haut est invalidée.
-
-### Mesure GND
+### Masse
 
 Carte hors tension :
 
 ```text
-pin 2 = GND
-pin 8 = GND
+CN1-2 = GND
+CN1-8 = GND
 ```
 
 Statut : **MEASURED / USER CONFIRMED**.
 
-### Traçage pins 6 et 12
+### Identification du bus CAN
 
-Mesure utilisateur :
+Composants relevés :
 
-```text
-CN1 pin 6  → TDK ZJY2401
-CN1 pin 12 → TDK ZJY2401
-```
-
-Le `TDK ZJY2401` est un filtre de mode commun 4 broches placé sur une paire de lignes.
-
-### Identification IC3 — étape décisive
-
-Marquage relevé directement sur `IC3` :
+- filtre de mode commun `TDK ZJY2401` ;
+- `IC3` marqué :
 
 ```text
 A82C250
@@ -93,14 +71,14 @@ N5464
 PHILIPS
 ```
 
-Ce marquage correspond au **Philips/NXP PCA82C250**, transceiver CAN haute vitesse compatible ISO 11898.
+`IC3` est identifié comme **Philips/NXP PCA82C250**, transceiver CAN haute vitesse ISO 11898.
 
-Pinout datasheet utile :
+Pinout utile :
 
 ```text
 1 TXD
 2 GND
-3 VCC (5 V nominal)
+3 VCC 5 V nominal
 4 RXD
 5 Vref
 6 CANL
@@ -108,49 +86,64 @@ Pinout datasheet utile :
 8 Rs
 ```
 
-Conclusion :
+Conclusion : **CSW-2000R utilise un bus CAN = CONFIRMÉ**.
+
+### Correction — contacts CAN dupliqués
+
+Nouvelle mesure utilisateur :
 
 ```text
-CSW-2000R utilise un bus CAN = CONFIRMÉ
-CN1-6 / CN1-12 = paire CAN via ZJY2401 = CONFIRMÉ
+CN1-5 = CN1-6
+CN1-11 = CN1-12
 ```
 
-Ce qui reste à déterminer :
+Les deux paires sont donc deux nets électriques, chacun dupliqué sur deux contacts du connecteur :
 
 ```text
-CN1-6  = CANH ou CANL ?
-CN1-12 = CANL ou CANH ?
+NET A = CN1-5 + CN1-6
+NET B = CN1-11 + CN1-12
 ```
 
-Statut de la polarité H/L : **NOT YET MEASURED**.
+Ces deux nets passent par le `TDK ZJY2401` et rejoignent le PCA82C250.
+
+Les anciennes notes ne mentionnant que `CN1-6` et `CN1-12` sont incomplètes et supersédées.
+
+### Polarité CAN actuelle
+
+D'après le traçage utilisateur, sous l'hypothèse d'un passage direct des deux enroulements du `ZJY2401` :
+
+```text
+CN1-5/6   → CANH probable
+CN1-11/12 → CANL probable
+```
+
+Statut : **PROVISIONAL — CONTINUITY CHECK REQUIRED**.
+
+Pour passer en `MEASURED` :
+
+- vérifier `PCA82C250 pin 7 = CANH` vers l'un des deux nets ;
+- vérifier `PCA82C250 pin 6 = CANL` vers l'autre.
 
 ### Alimentation
 
-Le PCA82C250 confirme l'existence d'un rail interne d'environ 5 V (`VCC pin 3`, plage nominale datasheet 4,5–5,5 V).
+Le PCA82C250 confirme un rail interne 5 V, mais l'entrée positive du module côté CN1 et la tension véhicule ne sont toujours pas identifiées.
 
-Mais l'entrée positive du module côté `CN1` et sa tension nominale véhicule ne sont toujours pas identifiées.
+**Ne pas appliquer 12 V tant que le chemin d'alimentation n'est pas tracé.**
 
-Conclusion : **ne pas appliquer 12 V tant que le chemin d'alimentation n'est pas tracé.**
+## Prochains tests CSW-2000R
 
-Document détaillé : `docs/CSW2000R.md`.
+1. confirmer par continuité `NET A = CANH/CANL` et `NET B = CANL/CANH` ;
+2. mesurer la résistance entre `NET A` et `NET B` pour vérifier une éventuelle terminaison CAN ;
+3. suivre `PCA82C250 pin 3` vers le rail 5 V puis le régulateur ;
+4. remonter jusqu'à l'entrée positive CN1 ;
+5. suivre `TXD pin 1` et `RXD pin 4` vers le MCU NEC ;
+6. seulement après identification alimentation : alimentation de laboratoire limitée en courant ;
+7. écoute CAN passive et détermination du bitrate ;
+8. captures trames par bouton / joystick / rotation.
 
-## Prochains tests
+## Prochains tests commande volant
 
-### Commande volant
-
-- inspection à réception / ouverture si nécessaire ;
+- inspection / ouverture si nécessaire ;
 - cartographie des 6 broches ;
 - boutons ;
 - décodage molette.
-
-### CSW-2000R
-
-1. carte hors tension : suivre `PCA82C250 pin 6 = CANL` à travers le ZJY2401 jusqu'à CN1 ;
-2. suivre `PCA82C250 pin 7 = CANH` à travers le ZJY2401 jusqu'à CN1 ;
-3. fixer définitivement `CN1-6` et `CN1-12` en CANH/CANL ;
-4. suivre `PCA82C250 pin 3 = VCC` vers le rail 5 V et son régulateur ;
-5. remonter du régulateur jusqu'à l'entrée positive CN1 ;
-6. suivre `TXD pin 1` et `RXD pin 4` vers le MCU NEC ;
-7. seulement après identification alimentation : alimentation de laboratoire limitée en courant ;
-8. écoute CAN passive et détermination du bitrate ;
-9. captures trames par bouton / joystick / rotation.
