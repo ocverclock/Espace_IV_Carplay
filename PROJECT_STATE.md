@@ -1,10 +1,10 @@
 # Espace IV Modernisation Multimédia — PROJECT_STATE
 
-Dernière mise à jour : 2026-09-02
+Dernière mise à jour : 2026-09-04
 
 Ce fichier est le **checkpoint global et la source de vérité principale** du projet.
 
-Il ne doit pas contenir tous les détails techniques : ceux-ci vivent dans les documents de sous-système. Ici doivent rester l’architecture, les décisions actives, les états mesurés et les prochaines étapes.
+Il ne doit pas contenir tous les détails techniques : ceux-ci vivent dans les documents de sous-système. Ici restent l’architecture, les faits mesurés, les décisions actives et les prochaines étapes.
 
 ## 1. Objectif
 
@@ -58,7 +58,7 @@ Système : Renault Carminat Navigation & Communication / CNC, génération Xanav
 
 L’ancienne navigation est destinée à être abandonnée fonctionnellement.
 
-## 4. Matériel déjà disponible / acheté
+## 4. Matériel disponible / acheté
 
 ### Disponible
 
@@ -68,18 +68,32 @@ L’ancienne navigation est destinée à être abandonnée fonctionnellement.
 - XTOOL A30M pour diagnostic classique ;
 - ancien ELM327 Wi-Fi non retenu pour le projet.
 
-### Acheté pour reverse engineering
-
-Commande centrale :
+### Commande centrale — reçue et ouverte
 
 ```text
 Renault 8200326970
 CSW-2000R
+Commande Centrale Multimedia
 Xanavi Informatics Corporation
-connecteur 6 voies
 ```
 
-Commande au volant :
+**MEASURED / OBSERVED le 2026-09-04 :**
+
+- boîtier ouvert sans destruction ;
+- PCB principal et face boutons photographiés ;
+- connecteur principal `CN1` = **12 voies, 2 × 6** ;
+- sérigraphie `6` et `12` visible près du connecteur ;
+- microcontrôleur principal NEC Japan en QFP ;
+- quartz externe `X1` ;
+- étage de protection / alimentation visible près de CN1 (`ZD4`, `ZD5`, `VR3`, transistors et passifs) ;
+- carte avant avec boutons `SWx`, LEDs et joystick central ;
+- le CSW est donc une commande électronique active, pas une simple matrice passive exposée au faisceau.
+
+L’ancienne mention « connecteur 6 voies » est **invalidée**.
+
+Document : `docs/CSW2000R.md`.
+
+### Commande au volant
 
 ```text
 Renault 7701049643
@@ -87,7 +101,7 @@ Renault 7701049643
 connecteur 6 voies
 ```
 
-Ces pièces sont destinées au laboratoire pour éviter de risquer les pièces du véhicule.
+Pièce destinée au reverse engineering complet, molette comprise.
 
 ## 5. Architecture cible
 
@@ -189,8 +203,6 @@ dtoverlay=i2c-gpio,bus=2,i2c_gpio_sda=19,i2c_gpio_scl=26,i2c_gpio_delay_us=5
 
 ### Architecture alimentation MFi
 
-Le schéma de référence n’utilise pas GPIO21 pour alimenter directement VCC.
-
 ```text
 Pi 3.3 V → load-switch → MFI_VCC
 GPIO21 → EN du load-switch
@@ -218,17 +230,9 @@ Recoupé par plusieurs schémas publics :
 
 Ce pinout n’est **pas encore MEASURED** sur notre prototype.
 
-Avant PCB : revérifier orientation/footprint fournisseur et contrôler la première carte hors tension.
-
 Décision : `D015`.
 
-Adresse I²C CP3.0 attendue selon WACResearch :
-
-```text
-0x10
-```
-
-À confirmer sur notre propre composant.
+Adresse I²C CP3.0 attendue selon WACResearch : `0x10`, à confirmer sur notre composant.
 
 Document : `docs/MFI_WIRING.md`.
 
@@ -243,18 +247,7 @@ Décisions :
 - luminosité élevée ;
 - nouvelle façade imprimée 3D.
 
-L’ancienne fenêtre visible d’environ `130 × 70 mm` n’est plus considérée comme limite définitive.
-
-Critères avant achat :
-
-- dimensions externes ;
-- connecteurs ;
-- luminosité ;
-- angle de vision ;
-- consommation ;
-- température ;
-- résolution ;
-- possibilité de gérer proprement le rétroéclairage.
+L’ancienne fenêtre visible d’environ `130 × 70 mm` n’est plus une limite définitive.
 
 Cible de luminosité : idéalement ≥500 nits si prix raisonnable.
 
@@ -270,8 +263,6 @@ Référence : `7701049643 / 34442201AF`.
 - reverse engineering à faire ;
 - probablement passive / contacts-matrice ;
 - molette obligatoire dans la reproduction.
-
-Ne pas supposer son codage sans mesure.
 
 Plan :
 
@@ -290,24 +281,38 @@ Documents :
 
 Référence : `8200326970 / CSW-2000R`.
 
-État :
+### Etat mesuré
 
-- pièce achetée ;
+- pièce reçue ;
+- ouverte et photographiée ;
 - électronique interne confirmée ;
-- protocole, alimentation et pinout inconnus ;
-- ne pas supposer CAN.
+- `CN1` = **12 voies (2 × 6)** ;
+- MCU NEC + quartz externe visibles ;
+- boutons / LEDs gérés par l’électronique interne.
 
-Plan :
+### Toujours inconnu
 
-1. ouvrir ;
-2. photographier PCB ;
-3. relever circuits intégrés ;
-4. continuité des 6 broches ;
-5. identifier alimentation ;
-6. alimentation labo limitée en courant ;
-7. analyser protocole.
+- numérotation exacte vue côté faisceau ;
+- GND ;
+- alimentation / tension ;
+- référence exacte du MCU ;
+- fonction de `IC3` ;
+- protocole de communication ;
+- CAN / UART / LIN / autre.
 
-Fallback : conserver mécanique/joystick ALPS et remplacer l’électronique interne par RP2040 si nécessaire.
+**Ne pas supposer CAN. Ne pas appliquer 12 V tant que GND et alimentation ne sont pas identifiés.**
+
+### Prochain plan CSW
+
+1. photo `CN1` strictement de face ;
+2. verrouiller numérotation 1–12 ;
+3. continuité hors tension des 12 broches ;
+4. identifier GND et chemin d’alimentation ;
+5. macros MCU / IC3 / étage d’entrée ;
+6. alimentation labo limitée en courant seulement après identification ;
+7. analyse logique / oscilloscope des lignes restantes.
+
+Fallback : conserver mécanique/joystick et remplacer l’électronique interne par RP2040 si le protocole d’origine n’est pas rentable à reproduire.
 
 Document : `docs/CSW2000R.md`.
 
@@ -356,15 +361,6 @@ Micro :
 1. essayer micro Renault d’origine ;
 2. fallback micro automobile externe discret.
 
-À valider :
-
-- présence/activation AUX ;
-- niveau ligne ;
-- bruit de masse ;
-- isolateur éventuel ;
-- micro ;
-- appels/Siri.
-
 Document : `docs/AUDIO_MIC.md`.
 
 ## 14. Caméra de recul
@@ -386,39 +382,15 @@ Document : `docs/REVERSE_CAMERA.md`.
 
 ## 15. CAN véhicule
 
-Objectifs futurs :
+Objectifs futurs : température, RPM, vitesse, pression admission/turbo, rail, FAP, EGR et autres données Renault.
 
-- température liquide ;
-- RPM ;
-- vitesse ;
-- pression admission/turbo ;
-- rail ;
-- FAP ;
-- EGR ;
-- autres données Renault.
+Tests déjà réalisés :
 
-### Tests déjà réalisés
+- XTOOL A30M : Bluetooth SPP mais protocole propriétaire ;
+- ancien ELM327 Wi-Fi : `ATI` OK, `ATDP` CAN 11/500, PID standard → `CAN ERROR` ; interface abandonnée ;
+- ELS27 V5/V5.2 Full : utile mais achat reporté (~150 €).
 
-XTOOL A30M :
-
-- Bluetooth SPP présent ;
-- protocole propriétaire ;
-- non exploitable comme ELM327 direct.
-
-Ancien ELM327 Wi-Fi :
-
-```text
-192.168.0.10:35000
-ATI → ELM327 v1.5
-ATDP → ISO 15765-4 CAN 11/500
-010C / 0105 / 010B → CAN ERROR
-```
-
-Conclusion : interface abandonnée pour ce projet.
-
-ELS27 V5/V5.2 Full : utile mais ~150 €, achat reporté.
-
-### Architecture finale
+Architecture finale :
 
 ```text
 Pi SPI → MCP2518FD #1 → transceiver → CAN véhicule
@@ -427,18 +399,11 @@ Pi SPI → MCP2518FD #2 → transceiver → CAN secondaire
 
 K-Line optionnelle `L9637D`.
 
-Règles :
-
-- écoute passive d’abord ;
-- pas d’émission active avant compréhension ;
-- ne pas considérer OBD 12/13 comme CAN secondaire sans preuve ;
-- attention aux terminaisons 120 Ω.
+Règles : écoute passive d’abord, aucune émission active avant compréhension, aucune hypothèse sur OBD 12/13 sans preuve.
 
 Document : `docs/CAN_RESEARCH.md`.
 
 ## 16. Alimentation automobile
-
-Ne jamais alimenter naïvement le Pi depuis un +12 V véhicule permanent.
 
 Cible :
 
@@ -449,13 +414,7 @@ Cible :
 → Raspberry Pi
 ```
 
-ACC/contact :
-
-- détection protégée ;
-- shutdown Linux propre ;
-- délai ;
-- coupure finale ;
-- faible consommation véhicule arrêté.
+ACC/contact : détection protégée, shutdown Linux propre, temporisation, coupure finale, faible consommation à l’arrêt.
 
 Document : `docs/POWER.md`.
 
@@ -485,7 +444,17 @@ Ne pas envoyer le PCB tant que :
 
 ## 18. Priorités actuelles
 
-### P0 — banc fonctionnel
+Deux travaux peuvent avancer en parallèle.
+
+### P0-A — CSW-2000R
+
+1. verrouiller numérotation CN1 1–12 ;
+2. cartographie hors tension ;
+3. identifier GND / alimentation ;
+4. identifier les circuits d’interface ;
+5. seulement ensuite alimenter et observer le protocole.
+
+### P0-B — banc LIVI / CarPlay
 
 1. Pi 4 sous Trixie ;
 2. LIVI ;
@@ -496,9 +465,9 @@ Ne pas envoyer le PCB tant que :
 7. CarPlay filaire ;
 8. audio/micro/Siri.
 
-### P1 — commandes / usage quotidien
+### P1 — usage quotidien
 
-- reverse engineering commandes Renault ;
+- commande au volant ;
 - écran final ;
 - caméra ;
 - audio ;
@@ -512,7 +481,7 @@ Ne pas envoyer le PCB tant que :
 ### P3 — télémétrie avancée
 
 - CAN Renault ;
-- ELS27 uniquement si réellement nécessaire.
+- ELS27 uniquement si nécessaire.
 
 ## 19. Achats court terme
 
@@ -527,62 +496,18 @@ Actuellement :
 - load-switch MFi à sélectionner après mesure ;
 - petit matériel de laboratoire.
 
-Le MFi n’est plus classé en achat « après validation » : il est nécessaire pour effectuer la validation CarPlay.
+## 20. Prochaine action concrète
 
-## 20. Questions ouvertes majeures
+### Sur le CSW maintenant disponible
 
-### MFi
+**Ne pas l’alimenter.**
 
-- consommation réelle ?
-- validation 3.3 V sur notre lot ?
-- adresse `0x10` confirmée ?
-- load-switch exact ?
-- authentification CarPlay réussie ?
+Faire d’abord :
 
-### Commandes
+1. une photo parfaitement de face de `CN1` permettant de lire le détrompeur et les repères `6` / `12` ;
+2. continuité des 12 pins hors tension ;
+3. renseigner le tableau dans `docs/CSW2000R.md`.
 
-- pinout CSW ?
-- protocole CSW ?
-- matrice commande volant ?
-- séquence molette ?
+### En parallèle
 
-### Écran
-
-- modèle final ?
-- dimensions module ?
-- luminosité réelle ?
-
-### Audio
-
-- AUX Renault ?
-- micro OEM réutilisable ?
-
-### Caméra
-
-- CVBS/AHD/UVC ?
-- capture Linux faible latence ?
-
-### CAN
-
-- topologie réelle de cet Espace IV ?
-- bus secondaire accessible ?
-- valeurs passives disponibles ?
-
-### Alimentation
-
-- point +12 V / ACC définitif ?
-- délai shutdown ?
-- UPS/supercap nécessaire ou non ?
-
-## 21. Prochaine action concrète
-
-**Banc Raspberry Pi 4 + LIVI sous Trixie, avec écran HDMI temporaire.**
-
-Avant CarPlay :
-
-1. vérifier OS ;
-2. installer LIVI ;
-3. valider affichage ;
-4. valider clavier/HID ;
-5. construire le prototype MFi selon `docs/MFI_WIRING.md` ;
-6. mesurer et documenter dans `docs/TEST_LOG.md`.
+Banc Raspberry Pi 4 + LIVI sous Trixie avec écran HDMI temporaire, puis prototype MFi selon `docs/MFI_WIRING.md`.
