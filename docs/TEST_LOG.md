@@ -77,18 +77,30 @@ La convention du projet devient donc :
 
 Toute documentation antérieure montrant les deux rangées inversées est supersédée.
 
+### Mesure GND CN1
+
+Carte hors tension, continuité vers un point de masse du PCB :
+
+```text
+pin 2 = GND
+pin 8 = GND
+```
+
+Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
+
+Les autres fonctions du connecteur restent à déterminer.
+
 ### Ce qui n'est PAS encore mesuré
 
-- masse ;
-- alimentation ;
+- entrée positive / alimentation ;
 - tension nominale ;
 - référence exacte MCU ;
 - fonction de `IC3` ;
-- fonction électrique des 12 pins ;
+- fonction électrique des 10 autres pins ;
 - protocole de sortie ;
 - CAN / UART / LIN / autre.
 
-Conclusion : **ne pas alimenter le CSW avant cartographie hors tension des 12 broches.**
+Conclusion : **ne pas alimenter le CSW avant identification du chemin d'alimentation.**
 
 Document détaillé : `docs/CSW2000R.md`.
 
@@ -103,9 +115,10 @@ Document détaillé : `docs/CSW2000R.md`.
 
 ### CSW-2000R
 
-1. chercher la ou les broches GND par continuité, carte hors tension ;
-2. cartographier les 12 broches hors tension ;
-3. identifier le chemin d'alimentation ;
-4. macros lisibles MCU / IC3 / composants d'entrée ;
-5. seulement ensuite alimentation de laboratoire limitée en courant ;
-6. analyse des lignes de communication.
+1. utiliser `pin 2` ou `pin 8` comme référence GND ;
+2. chercher hors tension la broche reliée au chemin positif du gros condensateur `220 µF / 25 V` près de CN1 ;
+3. mesurer ensuite résistance vers GND des 10 broches restantes ;
+4. identifier le chemin d'alimentation à travers protections / régulation ;
+5. macros lisibles MCU / IC3 / composants d'entrée ;
+6. seulement ensuite alimentation de laboratoire limitée en courant ;
+7. analyse des lignes de communication.
