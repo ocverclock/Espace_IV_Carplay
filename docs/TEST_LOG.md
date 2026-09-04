@@ -88,41 +88,43 @@ Pinout utile :
 
 Conclusion : **CSW-2000R utilise un bus CAN = CONFIRMÉ**.
 
-### Correction — contacts CAN dupliqués
+### Contacts CAN dupliqués
 
-Nouvelle mesure utilisateur :
+Mesure utilisateur :
 
 ```text
 CN1-5 = CN1-6
 CN1-11 = CN1-12
 ```
 
-Les deux paires sont donc deux nets électriques, chacun dupliqué sur deux contacts du connecteur :
+Les deux nets côté connecteur sont donc :
 
 ```text
-NET A = CN1-5 + CN1-6
-NET B = CN1-11 + CN1-12
+NET H = CN1-5 + CN1-6
+NET L = CN1-11 + CN1-12
 ```
-
-Ces deux nets passent par le `TDK ZJY2401` et rejoignent le PCA82C250.
 
 Les anciennes notes ne mentionnant que `CN1-6` et `CN1-12` sont incomplètes et supersédées.
 
-### Polarité CAN actuelle
+### Polarité CAN confirmée
 
-D'après le traçage utilisateur, sous l'hypothèse d'un passage direct des deux enroulements du `ZJY2401` :
+Continuité vérifiée jusqu'au `PCA82C250` :
 
 ```text
-CN1-5/6   → CANH probable
-CN1-11/12 → CANL probable
+PCA82C250 pin 7 = CANH → CN1-5 / CN1-6
+PCA82C250 pin 6 = CANL → CN1-11 / CN1-12
 ```
 
-Statut : **PROVISIONAL — CONTINUITY CHECK REQUIRED**.
+Brochage CAN définitif :
 
-Pour passer en `MEASURED` :
+```text
+CN1-5  = CANH
+CN1-6  = CANH
+CN1-11 = CANL
+CN1-12 = CANL
+```
 
-- vérifier `PCA82C250 pin 7 = CANH` vers l'un des deux nets ;
-- vérifier `PCA82C250 pin 6 = CANL` vers l'autre.
+Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
 
 ### Alimentation
 
@@ -130,16 +132,17 @@ Le PCA82C250 confirme un rail interne 5 V, mais l'entrée positive du module cô
 
 **Ne pas appliquer 12 V tant que le chemin d'alimentation n'est pas tracé.**
 
+Document détaillé : `docs/CSW2000R.md`.
+
 ## Prochains tests CSW-2000R
 
-1. confirmer par continuité `NET A = CANH/CANL` et `NET B = CANL/CANH` ;
-2. mesurer la résistance entre `NET A` et `NET B` pour vérifier une éventuelle terminaison CAN ;
-3. suivre `PCA82C250 pin 3` vers le rail 5 V puis le régulateur ;
-4. remonter jusqu'à l'entrée positive CN1 ;
-5. suivre `TXD pin 1` et `RXD pin 4` vers le MCU NEC ;
-6. seulement après identification alimentation : alimentation de laboratoire limitée en courant ;
-7. écoute CAN passive et détermination du bitrate ;
-8. captures trames par bouton / joystick / rotation.
+1. mesurer, module seul et hors tension, la résistance entre `CANH (CN1-5/6)` et `CANL (CN1-11/12)` pour vérifier une éventuelle terminaison ;
+2. suivre `PCA82C250 pin 3` vers le rail 5 V puis le régulateur ;
+3. remonter jusqu'à l'entrée positive CN1 ;
+4. suivre `TXD pin 1` et `RXD pin 4` vers le MCU NEC ;
+5. seulement après identification alimentation : alimentation de laboratoire limitée en courant ;
+6. écoute CAN passive et détermination du bitrate ;
+7. captures trames par bouton / joystick / rotation.
 
 ## Prochains tests commande volant
 
