@@ -132,58 +132,60 @@ Module seul, hors tension et débranché du véhicule :
 R(CANH, CANL) = 37 kΩ
 ```
 
-Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
+Interprétation : le CSW ne possède pas de terminaison CAN fixe locale de `120 Ω`.
 
-Interprétation : le CSW ne possède pas de terminaison CAN fixe locale de `120 Ω` entre CANH et CANL.
+### Traçage alimentation — CN1-7 / D1 / C2
 
-### Traçage alimentation — CN1-7 / D1 / condensateur 220 µF
-
-Nouvelle mesure utilisateur, carte hors tension :
+Carte hors tension :
 
 - le pad supérieur près du gros condensateur est relié à `CN1-7` ;
 - le pad inférieur est relié à la masse `CN1-2/8` ;
-- `D1` est insérée entre `CN1-7` et le rail du gros condensateur `220 µF / 25 V` ;
+- `D1` est insérée entre `CN1-7` et le rail du gros condensateur `C2 220 µF / 25 V` ;
 - mesure en mode diode à travers `D1` :
 
 ```text
 Vf(D1) = 0,551 V
 ```
 
-Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
+Interprétation : `CN1-7` est un candidat très fort pour l'entrée positive d'alimentation ; `D1` est très probablement une protection série.
 
-Interprétation : valeur cohérente avec une diode silicium série de protection d'alimentation. `CN1-7` devient un candidat très fort pour l'entrée positive, mais le sens exact de D1 et la tension nominale doivent encore être confirmés avant toute alimentation.
+### IC1 / C3 / rail 5 V
 
-### Alimentation — état actuel
+Nouvelle mesure utilisateur :
 
-Faits acquis :
+- `IC1` alimente le `PCA82C250` ;
+- `C3 47 µF / 16 V` est raccordé sur la sortie de `IC1` ;
+- cette sortie rejoint `PCA82C250 pin 3 = VCC`.
+
+Le PCA82C250 étant alimenté nominalement en 5 V, la fonction de `IC1` est maintenant établie :
 
 ```text
-CN1-2/8 = GND
-CN1-7 → D1 → rail gros condensateur 220 µF / 25 V
-PCA82C250 pin 3 = rail logique 5 V attendu
+CN1-7 → D1 → C2 220 µF / 25 V → IC1 → C3 47 µF / 16 V → rail logique 5 V → PCA82C250 pin 3
 ```
+
+Conclusion : **IC1 est le régulateur / étage de régulation 5 V du module**.
+
+Statut : **FUNCTION CONFIRMED / EXACT PART NUMBER TBD — 2026-09-04**.
 
 Toujours inconnu :
 
-- sens anode/cathode exact de `D1` ;
-- tension nominale côté `CN1-7` ;
-- identité et pinout de `IC1` ;
-- chemin exact vers le rail 5 V.
+- référence exacte et pinout de `IC1` ;
+- plage admissible à l'entrée de `IC1` ;
+- tension nominale réelle appliquée à `CN1-7` dans le véhicule.
 
-**Ne pas appliquer 12 V tant que le sens de D1 et l'étage de régulation ne sont pas tracés.**
+**Ne pas appliquer 12 V tant que l'entrée admissible de IC1 n'est pas validée.**
 
 Document détaillé : `docs/CSW2000R.md`.
 
 ## Prochains tests CSW-2000R
 
-1. noter l'orientation des pointes donnant `0,551 V` sur D1 et vérifier l'autre sens ;
-2. suivre `+220 µF` jusqu'à `IC1` ;
-3. tester `+47 µF / 16 V` vers `PCA82C250 pin 3` ;
-4. relever le marquage exact de `IC1` ;
-5. suivre `TXD pin 1` et `RXD pin 4` vers le MCU NEC ;
-6. seulement après identification alimentation : alimentation de laboratoire limitée en courant ;
-7. écoute CAN passive et détermination du bitrate ;
-8. captures trames par bouton / joystick / rotation.
+1. relever le marquage exact de `IC1` ;
+2. confirmer ses broches `VIN`, `VOUT`, `GND` ;
+3. suivre le rail 5 V vers le MCU ;
+4. suivre `TXD pin 1` et `RXD pin 4` vers le MCU NEC ;
+5. seulement après validation de l'alimentation : alimentation de laboratoire limitée en courant ;
+6. écoute CAN passive et détermination du bitrate ;
+7. captures trames par bouton / joystick / rotation.
 
 ## Prochains tests commande volant
 
