@@ -25,7 +25,7 @@ Journal chronologique des mesures et observations réalisées sur notre matérie
 
 Conclusion : interface non fiable pour la suite.
 
-## 2026-09-04 — CSW-2000R ouvert / inspection photographique
+## 2026-09-04 — CSW-2000R ouvert / inspection et reverse engineering
 
 Pièce :
 
@@ -73,34 +73,64 @@ Statut : **MEASURED / USER CONFIRMED**.
 
 ### Traçage pins 6 et 12
 
-Nouvelle mesure utilisateur :
+Mesure utilisateur :
 
 ```text
 CN1 pin 6  → TDK ZJY2401
 CN1 pin 12 → TDK ZJY2401
 ```
 
-Le `TDK ZJY2401` est un filtre de mode commun 4 broches. Les pins `6` et `12` constituent donc très probablement les deux conducteurs d'une même paire de communication filtrée.
+Le `TDK ZJY2401` est un filtre de mode commun 4 broches placé sur une paire de lignes.
 
-Interprétation :
+### Identification IC3 — étape décisive
 
-- paire différentielle : **LIKELY** ;
-- CAN : **possible / plausibilité renforcée** ;
-- CAN confirmé : **NON**.
+Marquage relevé directement sur `IC3` :
 
-La prochaine mesure doit suivre les deux sorties du ZJY2401 côté électronique pour identifier leur destination, en particulier `VR1`, `VR2`, `IC3` ou un éventuel transceiver.
+```text
+A82C250
+5K3A3
+N5464
+PHILIPS
+```
 
-### Toujours inconnu
+Ce marquage correspond au **Philips/NXP PCA82C250**, transceiver CAN haute vitesse compatible ISO 11898.
 
-- entrée positive / alimentation ;
-- tension nominale ;
-- référence exacte MCU ;
-- fonction exacte de `IC3` ;
-- destination interne des sorties du ZJY2401 ;
-- protocole réel : CAN / LIN / UART / autre ;
-- fonction des pins `1,3,4,5,7,9,10,11`.
+Pinout datasheet utile :
 
-Conclusion : **ne pas alimenter le CSW avant identification du chemin d'alimentation.**
+```text
+1 TXD
+2 GND
+3 VCC (5 V nominal)
+4 RXD
+5 Vref
+6 CANL
+7 CANH
+8 Rs
+```
+
+Conclusion :
+
+```text
+CSW-2000R utilise un bus CAN = CONFIRMÉ
+CN1-6 / CN1-12 = paire CAN via ZJY2401 = CONFIRMÉ
+```
+
+Ce qui reste à déterminer :
+
+```text
+CN1-6  = CANH ou CANL ?
+CN1-12 = CANL ou CANH ?
+```
+
+Statut de la polarité H/L : **NOT YET MEASURED**.
+
+### Alimentation
+
+Le PCA82C250 confirme l'existence d'un rail interne d'environ 5 V (`VCC pin 3`, plage nominale datasheet 4,5–5,5 V).
+
+Mais l'entrée positive du module côté `CN1` et sa tension nominale véhicule ne sont toujours pas identifiées.
+
+Conclusion : **ne pas appliquer 12 V tant que le chemin d'alimentation n'est pas tracé.**
 
 Document détaillé : `docs/CSW2000R.md`.
 
@@ -115,10 +145,12 @@ Document détaillé : `docs/CSW2000R.md`.
 
 ### CSW-2000R
 
-1. suivre les deux sorties internes du `TDK ZJY2401` ;
-2. vérifier si elles arrivent sur `IC3` et, si oui, sur quelles broches ;
-3. obtenir une macro lisible du marquage `IC3` ;
-4. en parallèle, rechercher l'entrée positive via le condensateur `220 µF / 25 V` ;
-5. identifier protections / régulation ;
-6. seulement ensuite alimentation de laboratoire limitée en courant ;
-7. analyse des lignes de communication.
+1. carte hors tension : suivre `PCA82C250 pin 6 = CANL` à travers le ZJY2401 jusqu'à CN1 ;
+2. suivre `PCA82C250 pin 7 = CANH` à travers le ZJY2401 jusqu'à CN1 ;
+3. fixer définitivement `CN1-6` et `CN1-12` en CANH/CANL ;
+4. suivre `PCA82C250 pin 3 = VCC` vers le rail 5 V et son régulateur ;
+5. remonter du régulateur jusqu'à l'entrée positive CN1 ;
+6. suivre `TXD pin 1` et `RXD pin 4` vers le MCU NEC ;
+7. seulement après identification alimentation : alimentation de laboratoire limitée en courant ;
+8. écoute CAN passive et détermination du bitrate ;
+9. captures trames par bouton / joystick / rotation.
