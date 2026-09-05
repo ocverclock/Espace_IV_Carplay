@@ -18,6 +18,9 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 | Commande centrale | Renault `8200326970`, `CSW-2000R` | 1 | BOUGHT | P0 | acheté |
 | Commande volant | Renault `7701049643`, `34442201AF` | 1 | BOUGHT | P0 | acheté |
 | CAN prototype #1 | module `MCP2518FD + ATA6563`, SPI, H/G/L | 1 | BOUGHT | P0 | acheté |
+| Câble CAN automobile | paire torsadée cuivre, impédance caractéristique `120 Ω`, idéalement `2 × 0,35 mm²`, gaine automobile | 5 à 10 m | SELECT | P0 | à chiffrer |
+| Fil automobile signaux | cuivre souple paroi mince, famille ISO 19642 / équivalent automobile, `0,35 mm²` | assortiment | SELECT | P1 | à chiffrer |
+| Fil automobile alimentation | cuivre souple automobile, sections `0,5 / 0,75 / 1,0 mm²` selon circuit et longueur | assortiment | SELECT | P1 | à chiffrer |
 | Terminaisons CAN privées | `120 Ω`, 1 %, 0,25 W minimum | 4 | SELECT | P0 | <5 € |
 | Faisceau / breakout CSW | adaptateur réversible 12 voies pour isoler CAN du CSW | 1 | DESIGN | P0 | à chiffrer |
 | Proxy contacts OEM | Vishay `VO14642AT`, relais statique optique MOSFET `1 Form A`, DIP-6, 60 V, RON max 0,25 Ω | 5 conseillé | SELECT | P0 | ~7 € le lot AliExpress vu le 2026-09-05 |
@@ -47,6 +50,9 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 - ne pas figer le load-switch MFi avant mesure du courant du prototype ;
 - aucune interface diagnostic à ~150 € tant qu’elle n’est pas indispensable ;
 - le premier module CAN MCP2518FD est acheté pour le banc CSW ;
+- pour tout nouveau tronçon CAN, utiliser une vraie paire torsadée `120 Ω` ; ne pas remplacer par deux fils parallèles non torsadés dans le faisceau final ;
+- la couleur de CANH/CANL n'est pas imposée universellement par ISO 11898 : choisir une convention interne et l'étiqueter ;
+- les deux extrémités physiques d'un bus CAN doivent être terminées conformément à la topologie ; avec deux résistances de `120 Ω`, la résistance mesurée bus hors tension est voisine de `60 Ω` ;
 - mesurer H↔L du module reçu avant d’ajouter une terminaison afin de vérifier la présence éventuelle d’un `120 Ω` intégré ;
 - le bus privé CSW et le CAN véhicule restent physiquement séparés ;
 - pour le proxy de volume OEM, utiliser en priorité des `VO14642AT` DIP-6 : pas de relais mécanique nécessaire ;
@@ -69,3 +75,5 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 - câblage interface : `hardware/espace_iv_interface_v1/WIRING_DRAFT.md`
 - source fournisseur MFi : LCSC `C33770534`
 - relais statique optique : Vishay `VO14642AT`, datasheet `81646`
+- câbles automobiles : série ISO `19642`
+- CAN haute vitesse : ISO `11898-2`
