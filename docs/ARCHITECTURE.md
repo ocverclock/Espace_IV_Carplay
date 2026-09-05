@@ -34,10 +34,11 @@ LIVI actuel nécessite OpenGL ES 3.x ; sa documentation indique Trixie pour Pi 4
 Rôle :
 - entrées temps réel ;
 - commande au volant ;
-- CSW si nécessaire ;
 - reverse ;
 - ACC / illumination ;
 - USB HID.
+
+La commande au volant étant passive par contacts secs, elle doit être lue directement par le RP2040 et ne plus être connectée au décodeur OEM.
 
 Le RP2040 ne fait pas le CAN principal et ne porte pas la pile CarPlay.
 
@@ -61,16 +62,20 @@ Document de référence : `docs/MFI_WIRING.md`.
 
 ### CAN
 
-Deux contrôleurs séparés afin de pouvoir écouter simultanément deux réseaux.
+Le CSW-2000R est maintenant traité comme un nœud CAN à conserver mais à **isoler du réseau multimédia Renault**.
 
-Architecture visée :
+Architecture minimale visée :
 
 ```text
-Pi SPI → MCP2518FD #1 → transceiver automobile → CAN véhicule
-Pi SPI → MCP2518FD #2 → transceiver automobile → CAN secondaire
+Pi SPI → MCP2518FD #1 → CAN privé 500 kbit/s → CSW-2000R
+Pi SPI → MCP2518FD #2 → CAN véhicule
 ```
 
-L’écoute passive précède toute émission active.
+Le bus privé CSW ne doit pas être ponté directement vers le CAN OEM. Les commandes du CSW sont ainsi exclusives au Raspberry Pi.
+
+Si deux réseaux véhicule distincts doivent être écoutés simultanément en plus du bus privé CSW, un troisième contrôleur CAN ou un troisième footprint optionnel devra être ajouté au PCB final.
+
+L’écoute passive précède toute émission active sur les réseaux véhicule.
 
 ### K-Line
 
@@ -79,6 +84,18 @@ Optionnelle ; peuplée seulement si les mesures montrent qu’elle apporte une f
 ### Caméra de recul
 
 Doit fonctionner indépendamment de l’iPhone et idéalement rester disponible même si LIVI rencontre un problème.
+
+### Audio Renault
+
+Piste principale :
+
+```text
+Pi / LIVI → DAC / sortie ligne → AUX Renault → ampli / haut-parleurs d'origine
+```
+
+L'ancien autoradio est conservé pour la partie audio/amplification, mais il ne doit plus recevoir les commandes utilisateur du CSW ou de la commande au volant.
+
+Le niveau de gain fixe, la sélection AUX, le wake/mute et l'éventuel besoin de messages OEM restent à valider sur véhicule.
 
 ### Alimentation automobile
 
@@ -100,9 +117,10 @@ ACC/contact pilote une logique de shutdown propre et de coupure temporisée.
 - Linux/LIVI : interface utilisateur, CarPlay, audio, caméra, services haut niveau ;
 - RP2040 : entrées physiques déterministes et HID ;
 - MFi : authentification Apple uniquement ;
-- contrôleurs CAN : accès réseau véhicule ;
+- CAN privé CSW : commandes centrales Xanavi vers le Pi ;
+- CAN véhicule : télémétrie / intégration véhicule ;
 - étage d’alimentation : protections, démarrage/arrêt et rails propres.
 
 Le Raspberry ne doit pas dépendre du RP2040 pour afficher la caméra si une stratégie de secours plus robuste est nécessaire. Cette séparation sera réévaluée lors du prototype caméra.
 
-Le CAN n’est pas utilisé pour les commandes physiques si une lecture directe plus simple et plus sûre est disponible.
+Le CAN n’est pas utilisé pour les commandes physiques lorsqu’une lecture directe plus simple et plus sûre est disponible ; exception : le CSW-2000R conserve son électronique d'origine et est lu sur un bus CAN privé dédié.
