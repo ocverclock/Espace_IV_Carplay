@@ -20,8 +20,8 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 | CAN prototype #1 | module `MCP2518FD + ATA6563`, SPI, H/G/L | 1 | BOUGHT | P0 | acheté |
 | Terminaisons CAN privées | `120 Ω`, 1 %, 0,25 W minimum | 4 | SELECT | P0 | <5 € |
 | Faisceau / breakout CSW | adaptateur réversible 12 voies pour isoler CAN du CSW | 1 | DESIGN | P0 | à chiffrer |
-| Proxy volume OEM prototype | relais SPST-NO, 2 canaux minimum | 2 | SELECT | P0 | <10 € |
-| Proxy commandes OEM final | PhotoMOS/OptoMOS bidirectionnels flottants, 2 canaux minimum / 8 si matrice complète | 2 à 8 | DESIGN | P1 | à chiffrer |
+| Proxy contacts OEM | Vishay `VO14642AT`, relais statique optique MOSFET `1 Form A`, DIP-6, 60 V, RON max 0,25 Ω | 5 conseillé | SELECT | P0 | ~7 € le lot AliExpress vu le 2026-09-05 |
+| Résistances LED VO14642AT | `390 Ω`, 1/4 W | 8 | SELECT | P0 | <2 € |
 | Écran | 7" IPS HDMI, non tactile, forte luminosité | 1 | SELECT | P1 | 40–80 € |
 | RP2040 prototype | RP2040-Zero ou Pico | 2 | SELECT | P1 | 5–20 € |
 | MFi CP3.0 | Microchip `MFI343S00177-L`, LCSC `C33770534` | 2 conseillé | SELECT | P1 | quelques € |
@@ -49,8 +49,11 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 - le premier module CAN MCP2518FD est acheté pour le banc CSW ;
 - mesurer H↔L du module reçu avant d’ajouter une terminaison afin de vérifier la présence éventuelle d’un `120 Ω` intégré ;
 - le bus privé CSW et le CAN véhicule restent physiquement séparés ;
-- pour le volume OEM, deux relais SPST-NO suffisent au prototype ;
-- ne pas choisir la référence PhotoMOS finale avant mesure de la tension/courant de balayage des 6 fils côté décodeur Renault ;
+- pour le proxy de volume OEM, utiliser en priorité des `VO14642AT` DIP-6 : pas de relais mécanique nécessaire ;
+- deux canaux suffisent pour `VOL+` / `VOL-`; cinq pièces donnent trois pièces de réserve ou permettent d'étendre le proxy à d'autres boutons ;
+- avant validation PCB finale, mesurer la tension/courant de balayage des 6 fils côté décodeur Renault ;
+- le `VO14642AT` s'utilise en configuration AC/DC avec pins `4` et `6` comme contact de sortie ; pin `5` non utilisée ; pins `1/2` = LED d'entrée ;
+- une résistance `390 Ω` depuis un GPIO 3,3 V est retenue comme valeur de prototype, à valider sur banc ;
 - si toute la matrice doit être réémulée, prévoir jusqu'à 8 contacts électroniques indépendants ;
 - ne pas commander le troisième CAN avant d’avoir prouvé le besoin de deux réseaux véhicule simultanés en plus du CSW privé ;
 - ne pas commander l’écran avant d’avoir validé dimensions extérieures, luminosité et connectique ;
@@ -64,3 +67,4 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 - commande volant : `docs/STEERING_REMOTE.md`
 - câblage interface : `hardware/espace_iv_interface_v1/WIRING_DRAFT.md`
 - source fournisseur MFi : LCSC `C33770534`
+- relais statique optique : Vishay `VO14642AT`, datasheet `81646`
