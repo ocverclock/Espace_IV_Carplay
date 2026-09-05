@@ -61,7 +61,7 @@ Les trames se répètent sur le banc. En l'absence d'un second nœud CAN actif c
 
 ## Première trame décodée
 
-Première lecture utilisateur obtenue sur une pression de commande :
+Première lecture utilisateur obtenue sur une capture initialement faite pendant un essai de commande :
 
 ```text
 Identifier = 0x681
@@ -97,38 +97,84 @@ Analyse directe des échantillons :
 - la séquence d'émissions observée dure environ `50,15 ms` dans ce fichier ;
 - aucune autre valeur de payload n'a été trouvée dans cette capture.
 
-Cette analyse confirme indépendamment le décodage PulseView de la première trame.
+Cette analyse confirme indépendamment le décodage PulseView de la première trame, mais **ne prouve pas qu'elle correspond à un bouton**.
 
 Statut : **CAPTURE FILE ANALYZED — 2026-09-05**.
 
-## Trame sans action utilisateur
+## Baseline au repos confirmé
 
-Observation utilisateur supplémentaire : **le CSW émet également au moins une trame sans aucun appui**.
-
-Conséquence importante : `0x681` et/ou un payload particulier ne doivent pas être assimilés directement à une commande avant comparaison avec l'état de repos. Il faut désormais distinguer :
+Capture dédiée sans aucune action utilisateur :
 
 ```text
-repos / heartbeat
-appui
-maintien
-relâchement
-rotation / déplacement
+csw_idle.sr
+sample rate = 8 MHz
+50 000 000 échantillons
+ durée = 6,25 s
+D0 = TXD
+D5 = RXD
 ```
 
-Le fichier `csw_bouton_test_01.sr` ne permet pas encore d'identifier la trame de repos annoncée : dans ce fichier, l'activité détectée est concentrée dans une fenêtre d'environ 50 ms. Une capture dédiée sans aucune action est nécessaire pour établir le baseline.
+Décodage automatique de toute la capture :
 
-Statut : **USER OBSERVED — baseline exact à capturer**.
+```text
+Identifier = 0x681
+DLC        = 8
+Payload    = F0 0A 0A 01 FF FF FF FF
+```
+
+Résultats :
+
+- `2339` trames classiques valides ont été décodées ;
+- **100 %** de ces trames ont le même ID et le même payload ;
+- aucune autre trame / aucun autre payload n'a été trouvé dans cette capture idle ;
+- l'émission se produit en salves d'environ `49 à 50 ms` ;
+- `13` salves ont été observées sur `6,25 s` ;
+- les débuts de salve sont espacés d'environ `500 ms` ;
+- chaque salve contient typiquement environ `179` retransmissions de la même trame ;
+- l'intervalle entre deux tentatives successives dans une salve est d'environ `274 µs`.
+
+Conclusion :
+
+```text
+0x681  F0 0A 0A 01 FF FF FF FF
+```
+
+est **la baseline / trame périodique au repos sur notre banc**, et non une commande bouton identifiable à elle seule.
+
+La répétition très dense pendant ~50 ms reste compatible avec le fait qu'aucun autre nœud CAN n'acquitte la trame sur le banc ; ce comportement devra être vérifié avec un second nœud actif.
+
+Statut : **MEASURED FROM CAPTURE FILE — 2026-09-05**.
+
+## Conséquence pour le reverse engineering des commandes
+
+À partir de maintenant, une capture de commande doit être comparée explicitement à la baseline :
+
+```text
+IDLE = 0x681 / F0 0A 0A 01 FF FF FF FF
+```
+
+Une commande sera considérée identifiée uniquement si l'on observe au moins un des changements suivants :
+
+- nouvel identifiant CAN ;
+- modification d'un ou plusieurs octets du payload `0x681` ;
+- apparition/disparition d'une trame ;
+- modification reproductible de la périodicité ;
+- séquence différente entre appui, maintien et relâchement.
+
+Le fichier `csw_bouton_test_01.sr` étant identique à la baseline, il ne contient pas de commande distinguable dans la fenêtre capturée.
 
 ## Méthode de reverse engineering à partir de maintenant
 
 Pour chaque commande du CSW :
 
-1. faire d'abord une capture `idle` sans toucher au boîtier ;
-2. sauvegarder la capture complète en `.sr` ;
-3. faire ensuite une capture avec une seule commande isolée ;
-4. comparer les IDs, payloads et périodicités ;
-5. relever séparément appui, maintien et relâchement si le comportement change ;
-6. construire une table fonction → ID + payload + transition ;
-7. ajouter ensuite un second nœud CAN actif pour fournir l'ACK et valider le comportement nominal.
+1. garder le montage et le décodage actuels ;
+2. faire une capture de plusieurs secondes ;
+3. ne toucher à rien pendant environ 1 s ;
+4. effectuer une seule commande et la maintenir environ 0,5 à 1 s ;
+5. relâcher puis laisser encore environ 1 s ;
+6. sauvegarder la capture complète en `.sr` avec un nom explicite ;
+7. comparer automatiquement la capture à la baseline `idle` ;
+8. construire ensuite une table fonction → ID + payload + transition ;
+9. ajouter un second nœud CAN actif pour fournir l'ACK et valider le comportement nominal.
 
 Ne pas retenir les anciens décodages incohérents (`DLC 15`, CRC-21, octets > 8) : ils provenaient d'une capture sans terminaison correcte et/ou d'entrées flottantes.
