@@ -39,7 +39,8 @@
 
 ## D010 — Double CAN sur PCB
 **Décision :** prévoir deux canaux matériels sur le PCB final.  
-**Raison :** coût marginal faible et flexibilité de reverse engineering.
+**Raison :** coût marginal faible et flexibilité de reverse engineering.  
+**Point à réévaluer :** le bus privé du CSW consomme désormais un canal dédié. Si deux réseaux véhicule distincts doivent être écoutés simultanément en plus du CSW, un troisième canal ou footprint optionnel sera nécessaire.
 
 ## D011 — Caméra de recul
 **Décision :** fait partie du cahier des charges de base.  
@@ -68,3 +69,19 @@
 **Décision :** utiliser pour le prototype le pinout recoupé publiquement `1/4/7/9=GND`, `5=SDA`, `6=SCL`, `8=VCC`, `2/3=NC`, mais le conserver au statut de preuve externe jusqu’au contrôle physique de notre première carte.  
 **Raison :** plusieurs schémas publics concordent, mais la documentation fabricant complète n’est pas publiquement disponible.  
 **Condition avant PCB :** revérifier orientation/footprint fournisseur et faire un contrôle de continuité avant première alimentation.
+
+## D016 — Commandes Renault exclusives au Raspberry Pi
+**Décision :** les commandes utilisateur Renault ne doivent pas rester reliées en parallèle au chemin de commande OEM.
+
+Architecture retenue :
+
+- `CSW-2000R` isolé du CAN multimédia Renault et raccordé à un **bus CAN privé** vers un MCP2518FD du système Raspberry Pi ;
+- commande au volant `7701049643` déconnectée du décodeur OEM et lue directement par le RP2040 ;
+- aucun pont transparent entre le bus privé CSW et le CAN Renault ;
+- l’ancien autoradio peut rester alimenté et connecté aux réseaux nécessaires à son rôle d’amplification, mais il ne reçoit pas les commandes des boutons du nouveau système.
+
+**Raison :** éviter qu’une même pression soit interprétée simultanément par LIVI et par l’ancien autoradio/CNC. L’isolation physique est plus simple et plus déterministe qu’un filtrage logiciel.
+
+**Fallback :** si l’ancien autoradio exige certaines trames réseau pour son wake, son mute ou son fonctionnement AUX, une passerelle à liste blanche pourra être ajoutée ultérieurement. Elle ne devra jamais relayer par défaut les trames de commandes utilisateur.
+
+**Document :** `hardware/espace_iv_interface_v1/WIRING_DRAFT.md`.
