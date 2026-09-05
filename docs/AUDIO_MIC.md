@@ -2,7 +2,7 @@
 
 ## Objectif
 
-Conserver l’amplification et les haut-parleurs Renault autant que possible, tout en faisant du Raspberry Pi la source audio et le contrôleur utilisateur principal.
+Conserver l’amplification et les haut-parleurs Renault autant que possible, tout en faisant du Raspberry Pi la source audio et l'arbitre principal des commandes utilisateur.
 
 ## Piste principale
 
@@ -18,84 +18,70 @@ autoradio / étage ampli Renault
 haut-parleurs d'origine
 ```
 
-## Principe de commande
+## Commandes utilisateur
 
-Les commandes utilisateur ne doivent plus piloter directement l'ancien autoradio :
+Les commandes physiques ne restent pas reliées directement au système OEM :
 
 - `CSW-2000R` isolé sur un CAN privé vers le Raspberry Pi ;
 - commande au volant lue directement par RP2040 ;
-- aucun pont transparent vers le CAN OEM.
+- le RP2040 décide quelles actions restent internes au Raspberry et lesquelles sont reproduites vers l'électronique Renault.
 
-## Volume — point d'architecture à valider
+## Volume — stratégie corrigée
 
-Le point critique est la façon dont sera réglé le niveau sonore final. À ce stade, le projet ne sait pas encore si le volume de l'autoradio/amplificateur Renault peut être commandé indépendamment, ni si son réglage est mémorisé de manière exploitable.
+Observation utilisateur : **le volume de l'autoradio Renault n'est pas conservé au démarrage**.
 
-Trois stratégies sont retenues pour les essais, par ordre de simplicité :
+Conséquence : la stratégie précédente "autoradio laissé à un niveau fixe + volume quotidien uniquement côté Pi/DAC" n'est plus la stratégie principale.
 
-### A — Gain OEM fixe + volume côté Raspberry/DAC
-
-```text
-VOL+ / VOL-
-    ↓
-Raspberry / RP2040
-    ↓
-volume numérique ou matériel du DAC
-    ↓
-AUX Renault
-    ↓
-autoradio/ampli réglé une fois à un niveau fixe
-```
-
-Avantage : aucune commande utilisateur n'est envoyée à l'ancien autoradio. C'est la solution préférée si l'autoradio peut rester sur AUX avec un niveau fixe et sûr.
-
-À valider : mémorisation du niveau après redémarrage, plage dynamique, bruit de fond, volume maximal, comportement en appel/Siri et sécurité au boot.
-
-### B — Raspberry maître, commande sélective du volume OEM
-
-Si le gain fixe n'est pas satisfaisant mais que les messages de volume OEM sont identifiés, le Raspberry reste le seul destinataire des commandes physiques puis décide lui-même d'envoyer uniquement une commande de volume à l'autoradio/amplificateur via une passerelle CAN filtrée.
+Le chemin privilégié devient :
 
 ```text
-commande physique
-      ↓
- Raspberry
-      ├──► LIVI / UI
-      └──► CAN OEM : uniquement VOL+/VOL-/MUTE si nécessaire
+VOL+ / VOL- physiques
+       ↓
+     RP2040
+       ↓
+fermeture électronique des mêmes paires que la commande d'origine
+       ↓
+décodeur Renault d'origine
+       ↓
+système audio / volume OEM
 ```
 
-Ce n'est pas un pont transparent : l'ancien système ne voit jamais directement les commandes Renault. Il reçoit seulement les messages explicitement générés par notre contrôleur.
-
-### C — Contrôle analogique externe avant l'AUX
-
-Si ni A ni B ne sont satisfaisants, ajouter un véritable étage de volume stéréo commandé entre le DAC et l'entrée AUX : contrôleur de volume audio / PGA / atténuateur analogique dédié. Éviter un simple potentiomètre numérique générique non prévu pour l'audio.
+Contacts mesurés :
 
 ```text
-DAC → volume audio commandé → AUX Renault → ampli
+VOL+ = 4 ↔ 1
+VOL- = 4 ↔ 6
 ```
 
-Cette solution donne un volume totalement indépendant du protocole OEM mais ajoute du matériel audio.
+Le RP2040 devient donc un **proxy filtrant** :
 
-### Option de dernier recours — attaque directe de l'étage ampli
+- la commande physique est exclusive à notre électronique ;
+- le vieux système ne voit jamais directement le bouton ;
+- le RP2040 peut néanmoins simuler un appui OEM uniquement pour `VOL+` / `VOL-` ;
+- les autres commandes peuvent rester exclusivement utilisées par LIVI/CarPlay.
 
-Bypasser le préampli / contrôle de volume de l'autoradio et injecter directement dans son étage de puissance n'est pas retenu tant que l'architecture interne n'a pas été reverse-engineerée. Risque de niveau, offset, mute/standby et pops.
+Pour le prototype, deux relais SPST-NO conviennent. Pour le PCB final, privilégier des contacts électroniques flottants/bidirectionnels de type PhotoMOS/OptoMOS ou un interrupteur analogique adapté à la tension de balayage réellement mesurée.
+
+Ne pas choisir un simple NPN/NMOS à la masse avant mesure du balayage OEM.
+
+Le DAC du Pi sera maintenu à un niveau de ligne stable et sûr. Éviter une double variation simultanée du volume logiciel Pi et du volume OEM.
 
 ## A vérifier sur véhicule
 
 - entrée AUX réellement accessible ;
-- l'autoradio reste-t-il sur AUX après redémarrage ?
-- mémorise-t-il son volume ?
-- a-t-il besoin du réseau OEM pour sélectionner AUX ou rester réveillé ?
-- le réglage de volume OEM est-il piloté par CAN et identifiable ?
+- tension entre les six lignes de commande volant côté décodeur OEM au repos ;
+- courant lorsqu'un contact VOL+/VOL- est fermé ;
+- fréquence éventuelle de balayage ;
+- durée d'impulsion reconnue pour un appui court ;
+- comportement d'un appui long / auto-répétition ;
+- comportement AUX/wake de l'autoradio ;
 - niveau ligne ;
 - masse ;
 - boucle de masse ;
-- gain fixe optimal ;
-- volume de démarrage sûr ;
 - mute téléphone ;
 - comportement CarPlay ;
 - pops au boot/shutdown ;
 - besoin éventuel d'une isolation audio 1:1.
-
-Si l'autoradio exige certains messages réseau pour fonctionner, utiliser au besoin une passerelle CAN à liste blanche limitée aux messages de service strictement nécessaires. Ne jamais relayer les commandes utilisateur par défaut.
 
 ## Micro
 
