@@ -84,10 +84,10 @@ Architecture retenue :
 
 **Document :** `hardware/espace_iv_interface_v1/WIRING_DRAFT.md`.
 
-## D017 — Volume OEM via émulation des contacts de la commande au volant
+## D017 — Volume OEM via proxy RP2040 et contacts statiques
 **Observation :** le niveau de volume de l'autoradio Renault n'est pas conservé au démarrage.
 
-**Décision de travail :** conserver le contrôle de volume OEM et faire du RP2040 un proxy de la commande au volant.
+**Décision :** conserver le volume général dans l'électronique Renault et utiliser le RP2040 comme proxy de la commande au volant.
 
 Contacts mesurés :
 
@@ -96,14 +96,20 @@ VOL+ = 4 ↔ 1
 VOL- = 4 ↔ 6
 ```
 
-Le RP2040 lit la commande physique puis, pour `VOL+` ou `VOL-`, ferme électroniquement les mêmes paires **sur le côté faisceau/décodeur OEM**. Le tableau de bord / afficheur Renault continue ainsi à générer la commande numérique audio d'origine.
+Le RP2040 lit la commande physique puis ferme électroniquement les mêmes paires **sur le côté faisceau/décodeur OEM**.
 
-**Prototype :** deux petits relais SPST-NO sont acceptables.
+La cible finale n'est pas le relais mécanique mais un **relais statique optiquement commandé** de famille PhotoMOS/OptoMOS, à sortie MOSFET flottante et bidirectionnelle. Le relais mécanique reste seulement un moyen de validation de prototype si nécessaire.
 
-**PCB final :** préférer des contacts bidirectionnels flottants de type PhotoMOS/OptoMOS ou un interrupteur analogique bilatéral adapté. La référence exacte dépendra de mesures de tension/courant sur le faisceau OEM.
+**Progression volume :** reproduire d'abord la durée réelle de l'appui. Tant que le bouton physique est maintenu, le contact OEM reste fermé. Si le décodeur Renault gère l'auto-répétition comme attendu, la progression reste entièrement OEM.
 
-**Ne pas utiliser par défaut :** transistor NPN/NMOS simple vers masse avant d'avoir caractérisé le balayage de la matrice.
+**Audio Raspberry :**
 
-**Conséquence audio :** le DAC Raspberry est maintenu à un niveau de ligne stable ; le volume utilisateur général reste réglé par l'électronique Renault.
+- master de sortie Pi/DAC fixe et calibré ;
+- volume utilisateur global = électronique Renault ;
+- mixeur logiciel Raspberry uniquement pour les rapports entre sources : musique, navigation, Siri/appels, sons système, alertes ;
+- ducking/priorités/mute/limiteur gérés côté Raspberry ;
+- éviter une double variation simultanée du master Pi et du volume OEM.
+
+**Condition avant choix du relais statique :** mesurer tension, courant et éventuelle fréquence de balayage sur les lignes OEM.
 
 **Documents :** `docs/STEERING_REMOTE.md`, `docs/AUDIO_MIC.md`, `hardware/espace_iv_interface_v1/WIRING_DRAFT.md`.
