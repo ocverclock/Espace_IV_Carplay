@@ -25,11 +25,17 @@ Commande au volant 7701049643
   │ contacts secs
   ▼
 RP2040
+  ├── lecture des boutons / molette
   ├── USB HID → Raspberry Pi 4
   └── émulation sélective de contacts → décodeur OEM Renault
 ```
 
-Le point important est que la commande physique au volant est retirée du décodeur OEM. Le RP2040 devient l'arbitre : il peut consommer une commande uniquement côté Raspberry, ou reproduire volontairement certaines fermetures de contacts vers le décodeur Renault.
+Le RP2040 fonctionne donc dans les deux sens **fonctionnels** :
+
+- il reçoit les états des commandes physiques ;
+- il commande séparément des interrupteurs électroniques qui reproduisent certains contacts vers le système OEM.
+
+Il ne relie pas directement ses GPIO aux lignes Renault : les deux côtés restent séparés par l'étage d'interface approprié.
 
 ## 2. Isolement du CSW-2000R du réseau multimédia Renault
 
@@ -102,50 +108,78 @@ molette sens B   = 2+1 → 2+3 → 2+6
 
 ### Proxy de volume OEM
 
-Le volume de l'autoradio Renault **n'est pas conservé au démarrage** sur le véhicule utilisateur. La stratégie "volume OEM fixe + variation uniquement côté Pi" n'est donc plus la stratégie principale.
+Le volume de l'autoradio Renault n'est pas conservé au démarrage. Le volume général doit donc continuer à être réellement appliqué par l'électronique Renault.
 
-À la place, le RP2040 pourra reproduire électriquement les fermetures de contacts d'origine **du côté du décodeur OEM** :
+Le RP2040 reçoit l'état du bouton physique puis commande un **contact électronique distinct côté OEM** :
 
 ```text
-commande physique au volant
-        │
-        ▼
-      RP2040
-        │
-        ├── décision logique / éventuel HID vers Pi
-        │
-        └── sorties de commande
-             │
-             ├── contact électronique 4↔1 = VOL+
-             └── contact électronique 4↔6 = VOL-
-                        │
-                        ▼
-             faisceau côté décodeur Renault
-                        │
-                        ▼
-             tableau de bord / afficheur OEM
-                        │
-                        ▼
-                  système audio Renault
+commande physique
+     │
+     ▼
+   RP2040
+     │
+     ├── décision / HID Raspberry
+     │
+     └── commande logique
+              │
+              ▼
+       relais statique flottant
+              │
+              ├── 4↔1 = VOL+
+              └── 4↔6 = VOL-
+              │
+              ▼
+       décodeur Renault OEM
 ```
 
-Le décodeur Renault voit donc exactement la même chose qu'avec le bouton d'origine, mais **uniquement quand le RP2040 décide de reproduire la fermeture**.
+La progression du volume doit idéalement reproduire la durée réelle de l'appui :
 
-### Technologie de commutation
+```text
+bouton pressé  → contact OEM fermé
+bouton maintenu → contact OEM maintenu fermé
+bouton relâché → contact OEM ouvert
+```
 
-Pour le prototype :
+Si le décodeur Renault possède l'auto-répétition d'origine, cette méthode conserve exactement son comportement et sa vitesse de progression. Ne générer une cadence artificielle qu'en cas de mesure contraire.
 
-- deux petits relais `SPST-NO` peuvent parfaitement simuler `VOL+` et `VOL-` ;
-- c'est électriquement la solution la plus universelle tant que la tension/polarité de balayage OEM n'est pas mesurée.
+### PhotoMOS / OptoMOS
 
-Pour le PCB final, préférer :
+Ici `PhotoMOS` / `OptoMOS` désigne un **relais statique optiquement commandé**, pas un composant qui pilote un relais mécanique.
 
-- relais statiques **PhotoMOS / OptoMOS à sortie MOSFET bidirectionnelle**, ou
-- interrupteurs analogiques bilatéraux compatibles avec la tension de balayage réellement mesurée.
+Structure conceptuelle :
 
-Éviter de figer un simple transistor NPN/NMOS à la masse avant mesure : la matrice peut être balayée avec une polarité ou une référence qui ne correspond pas à cette hypothèse.
+```text
+GPIO RP2040
+    │
+ résistance
+    │
+    ▼
+ LED interne
+    ║ isolation optique
+    ▼
+ paire MOSFET bidirectionnelle
+    │
+    ▼
+contact électronique flottant
+```
 
-Un PhotoMOS agit comme un contact flottant et bidirectionnel, ce qui reproduit beaucoup mieux un bouton mécanique.
+Pour notre usage, avantages recherchés :
+
+- aucun clic ;
+- aucune pièce mobile ;
+- sortie flottante ;
+- conduction dans les deux sens ;
+- commande directe logique via LED + résistance ;
+- comportement proche d'un bouton mécanique normalement ouvert.
+
+Un simple optocoupleur à transistor n'est pas équivalent : sa sortie est polarisée et n'imite pas forcément proprement un contact sec bidirectionnel.
+
+Pour le prototype, un relais mécanique reste acceptable uniquement pour valider le principe. Pour le PCB final, on vise un relais statique de cette famille après mesure :
+
+- tension maximale entre lignes ;
+- courant de fermeture ;
+- résistance ON admissible ;
+- fréquence de balayage.
 
 Nombre de canaux :
 
@@ -154,12 +188,6 @@ Nombre de canaux :
 5 canaux : tous les boutons
 8 canaux : boutons + trois états de molette
 ```
-
-La référence exacte des commutateurs ne sera choisie qu'après mesure sur le faisceau OEM :
-
-- tension maximale entre les 6 lignes au repos ;
-- courant de fermeture d'un bouton ;
-- fréquence éventuelle du balayage.
 
 ## 4. Banc ESP32 + module MCP2518FD
 
@@ -254,48 +282,45 @@ Ce point reste à décider avant routage du PCB final.
 Architecture audio de travail :
 
 ```text
-Raspberry Pi / LIVI
-       │
-       ▼
-DAC / sortie ligne
-       │
-       ▼
-entrée AUX Renault
-       │
-       ▼
-autoradio / étage ampli Renault
-       │
-       ▼
-haut-parleurs d'origine
+CarPlay musique ───────┐
+Navigation ────────────┤
+Siri / appels ─────────┤
+sons système ──────────┤→ mixeur logiciel Raspberry → master fixe → DAC
+alertes locales ───────┘
+                                              │
+                                              ▼
+                                        AUX Renault
+                                              │
+                                              ▼
+                                      ampli / volume OEM
+                                              │
+                                              ▼
+                                      haut-parleurs
 ```
 
-Le volume général doit, à ce stade, rester piloté par l'électronique Renault puisque son niveau n'est pas mémorisé au démarrage.
+Le mixeur logiciel sert à régler les **rapports entre sources** : niveaux relatifs, ducking, priorités, mute, limiteur. Il ne sert pas de volume général quotidien.
 
-Principe retenu :
+Le niveau master Raspberry/DAC doit rester fixe, calibré et avec suffisamment de headroom pour éviter le clipping.
+
+Le volume général est piloté uniquement par l'ampli Renault via les fermetures OEM synthétiques :
 
 ```text
-VOL+ / VOL- physiques
-        ↓
-      RP2040
-        ↓
-fermetures OEM synthétiques 4↔1 / 4↔6
-        ↓
-décodeur Renault d'origine
-        ↓
-commande volume système audio
+VOL+ / VOL-
+    ↓
+RP2040
+    ↓
+4↔1 / 4↔6
+    ↓
+volume Renault
 ```
-
-Le Raspberry reste maître des entrées utilisateur, mais il autorise explicitement les deux commandes de volume à être reproduites vers le chemin OEM.
-
-Le niveau de sortie du Pi/DAC sera donc plutôt maintenu à une valeur de ligne stable et sûre ; éviter de cumuler simultanément une variation logicielle importante et une variation OEM du volume.
 
 À valider sur véhicule :
 
 - tension/courant du balayage de la commande au volant côté décodeur ;
-- durée minimale d'une fermeture reconnue pour VOL+/VOL- ;
-- répétition attendue lors d'un appui long ;
+- durée minimale d'une fermeture reconnue ;
+- comportement d'un appui maintenu ;
 - comportement AUX/wake de l'autoradio ;
-- niveau ligne optimal du DAC ;
+- niveau ligne fixe optimal du DAC ;
 - bruit, boucle de masse et pops de boot/shutdown.
 
 ## 9. Règle de sécurité réseau
