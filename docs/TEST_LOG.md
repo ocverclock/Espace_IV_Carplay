@@ -246,15 +246,80 @@ Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
 
 Le module est désormais suffisamment validé côté alimentation, wake, transceiver CAN et éclairage pour préparer l'écoute CAN.
 
-## Prochains tests CSW-2000R
+## 2026-09-05 — CSW-2000R CAN dynamique
 
-1. relever la consommation totale du module à `12,5 V` si possible ;
-2. connecter CANH/CANL avec terminaison de banc adaptée ;
-3. déterminer le bitrate CAN ;
-4. capturer le trafic au repos ;
-5. capturer ensuite chaque bouton / joystick / rotation ;
-6. tester `CN1-9 = 19E` plus tard si l'on veut reproduire la variation de luminosité ;
-7. aucune émission applicative avant compréhension du protocole.
+Montage analyseur logique :
+
+```text
+D0 = PCA82C250 pin 1 = TXD
+D5 = PCA82C250 pin 4 = RXD
+sample rate = 8 MHz
+CAN decoder RX = D5
+bitrate = 500000 bit/s
+```
+
+Deux résistances `220 Ω` en parallèle donnent environ `110 Ω` entre CANH et CANL pour la terminaison de banc.
+
+Avec cette terminaison :
+
+- TXD et RXD suivent la même trame ;
+- PulseView décode correctement du CAN classique ;
+- débit confirmé : **500 kbit/s** ;
+- DLC observé : `8` ;
+- première trame lisible :
+
+```text
+ID   = 0x681
+DATA = F0 0A 0A 01 FF FF FF FF
+```
+
+### Capture idle dédiée
+
+Fichier : `csw_idle.sr`
+
+```text
+50 000 000 échantillons
+8 MHz
+6,25 s de capture
+aucune action utilisateur
+```
+
+Décodage automatique de l'intégralité du fichier :
+
+- `2339` trames classiques valides ;
+- toutes ont `ID = 0x681` ;
+- toutes ont `DLC = 8` ;
+- toutes ont le payload `F0 0A 0A 01 FF FF FF FF` ;
+- aucune autre trame / aucun autre payload détecté ;
+- trafic organisé en `13` salves ;
+- une salve dure environ `49–50 ms` ;
+- début des salves espacé d'environ `500 ms` ;
+- typiquement ~`179` retransmissions identiques par salve ;
+- intervalle entre deux tentatives successives : environ `274 µs`.
+
+Conclusion :
+
+```text
+0x681  F0 0A 0A 01 FF FF FF FF
+```
+
+est la **baseline CAN au repos** du CSW sur notre banc. La capture initialement appelée `csw_bouton_test_01.sr` ne contient qu'une occurrence de cette baseline et ne permet donc pas d'attribuer ce payload à un bouton.
+
+La forte répétition dans chaque salve est probablement liée à l'absence d'ACK sur le banc, à confirmer avec un second nœud CAN actif.
+
+Statut : **MEASURED FROM CAPTURE FILE / USER CONFIRMED — 2026-09-05**.
+
+### Protocole de capture commandes à partir de maintenant
+
+Pour chaque bouton / joystick / rotation :
+
+1. capturer plusieurs secondes ;
+2. laisser environ 1 s au repos ;
+3. effectuer une seule action, idéalement maintenue 0,5–1 s ;
+4. relâcher ;
+5. laisser encore environ 1 s au repos ;
+6. sauvegarder en `.sr` avec un nom explicite ;
+7. comparer automatiquement avec la baseline idle.
 
 ## 2026-09-04 — Commande au volant 7701049643
 
