@@ -19,8 +19,8 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 | Commande volant | Renault `7701049643`, `34442201AF` | 1 | BOUGHT | P0 | acheté |
 | CAN prototype #1 | module `MCP2518FD + ATA6563`, SPI, H/G/L | 1 | BOUGHT | P0 | acheté |
 | Câble CAN automobile | paire torsadée cuivre, impédance caractéristique `120 Ω`, idéalement `2 × 0,35 mm²`, gaine automobile | 5 à 10 m | SELECT | P0 | à chiffrer |
-| Fil automobile signaux | cuivre souple paroi mince, famille ISO 19642 / équivalent automobile, `0,35 mm²` | assortiment | SELECT | P1 | à chiffrer |
-| Fil automobile alimentation | cuivre souple automobile, sections `0,5 / 0,75 / 1,0 mm²` selon circuit et longueur | assortiment | SELECT | P1 | à chiffrer |
+| Fil automobile signaux | AVSS `22 AWG / ~0,3 mm²`, 10 m par couleur : blanc, orange, vert, gris, noir, bleu, jaune | 70 m total | SELECT | P1 | panier utilisateur |
+| Fil automobile alimentation | AVSS `18 AWG / ~0,85 mm²`, rouge 10 m + noir 10 m | 20 m total | SELECT | P1 | panier utilisateur |
 | Terminaisons CAN privées | `120 Ω`, 1 %, 0,25 W minimum | 4 | SELECT | P0 | <5 € |
 | Faisceau / breakout CSW | adaptateur réversible 12 voies pour isoler CAN du CSW | 1 | DESIGN | P0 | à chiffrer |
 | Proxy contacts OEM | Vishay `VO14642AT`, relais statique optique MOSFET `1 Form A`, DIP-6, 60 V, RON max 0,25 Ω | 5 conseillé | SELECT | P0 | ~7 € le lot AliExpress vu le 2026-09-05 |
@@ -55,6 +55,8 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 - les deux extrémités physiques d'un bus CAN doivent être terminées conformément à la topologie ; avec deux résistances de `120 Ω`, la résistance mesurée bus hors tension est voisine de `60 Ω` ;
 - mesurer H↔L du module reçu avant d’ajouter une terminaison afin de vérifier la présence éventuelle d’un `120 Ω` intégré ;
 - le bus privé CSW et le CAN véhicule restent physiquement séparés ;
+- l'assortiment AVSS 22 AWG/~0,3 mm² sert aux signaux, commandes, GPIO, PhotoMOS, ACC/illumination de faible courant et prototypes ;
+- le rouge/noir AVSS 18 AWG/~0,85 mm² sert aux alimentations principales de courte à moyenne longueur ; toute alimentation forte ou longue reste à dimensionner par courant et chute de tension ;
 - pour le proxy de volume OEM, utiliser en priorité des `VO14642AT` DIP-6 : pas de relais mécanique nécessaire ;
 - deux canaux suffisent pour `VOL+` / `VOL-`; cinq pièces donnent trois pièces de réserve ou permettent d'étendre le proxy à d'autres boutons ;
 - avant validation PCB finale, mesurer la tension/courant de balayage des 6 fils côté décodeur Renault ;
