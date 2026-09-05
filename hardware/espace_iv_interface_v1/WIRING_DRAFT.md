@@ -6,7 +6,7 @@ Ce document prépare le câblage du banc puis de l'installation finale. Il disti
 
 ## 1. Principe d'architecture des commandes
 
-Objectif : les commandes Renault doivent être consommées par le Raspberry Pi uniquement, sans être interprétées en parallèle par l'ancien système multimédia.
+Objectif : les commandes Renault sont d'abord lues et arbitrées par notre électronique. Elles ne restent pas reliées passivement en parallèle au système OEM.
 
 Architecture visée :
 
@@ -25,12 +25,11 @@ Commande au volant 7701049643
   │ contacts secs
   ▼
 RP2040
-  │ USB HID
-  ▼
-Raspberry Pi 4
+  ├── USB HID → Raspberry Pi 4
+  └── émulation sélective de contacts → décodeur OEM Renault
 ```
 
-Les deux commandes sont donc **physiquement retirées du chemin de commande OEM**.
+Le point important est que la commande physique au volant est retirée du décodeur OEM. Le RP2040 devient l'arbitre : il peut consommer une commande uniquement côté Raspberry, ou reproduire volontairement certaines fermetures de contacts vers le décodeur Renault.
 
 ## 2. Isolement du CSW-2000R du réseau multimédia Renault
 
@@ -65,11 +64,11 @@ véhicule ─► CN1-9   rhéostat, si conservé
 véhicule ─► CN1-10  éclairage
 ```
 
-Ainsi, l'ancien autoradio ne voit jamais les trames de boutons du CSW.
+Ainsi, l'ancien système ne voit jamais directement les trames de boutons du CSW.
 
-## 3. Commande au volant
+## 3. Commande au volant — lecture + proxy OEM
 
-La commande au volant étant passive par contacts secs, elle sera déconnectée du décodeur Renault d'origine et lue directement par le RP2040.
+La commande au volant est passive par contacts secs. Elle sera déconnectée du décodeur Renault d'origine et lue directement par le RP2040.
 
 Rappel du connecteur mesuré :
 
@@ -89,7 +88,78 @@ Couleurs :
 6 gris
 ```
 
-Le RP2040 devient le seul équipement connecté à ces contacts. Il produit ensuite des événements USB HID vers le Pi.
+Contacts mesurés :
+
+```text
+volume -         = 4 + 6
+volume +         = 4 + 1
+source -         = 3 + 5
+source +         = 6 + 5
+bouton inférieur = 2 + 4
+molette sens A   = 2+6 → 2+3 → 2+1
+molette sens B   = 2+1 → 2+3 → 2+6
+```
+
+### Proxy de volume OEM
+
+Le volume de l'autoradio Renault **n'est pas conservé au démarrage** sur le véhicule utilisateur. La stratégie "volume OEM fixe + variation uniquement côté Pi" n'est donc plus la stratégie principale.
+
+À la place, le RP2040 pourra reproduire électriquement les fermetures de contacts d'origine **du côté du décodeur OEM** :
+
+```text
+commande physique au volant
+        │
+        ▼
+      RP2040
+        │
+        ├── décision logique / éventuel HID vers Pi
+        │
+        └── sorties de commande
+             │
+             ├── contact électronique 4↔1 = VOL+
+             └── contact électronique 4↔6 = VOL-
+                        │
+                        ▼
+             faisceau côté décodeur Renault
+                        │
+                        ▼
+             tableau de bord / afficheur OEM
+                        │
+                        ▼
+                  système audio Renault
+```
+
+Le décodeur Renault voit donc exactement la même chose qu'avec le bouton d'origine, mais **uniquement quand le RP2040 décide de reproduire la fermeture**.
+
+### Technologie de commutation
+
+Pour le prototype :
+
+- deux petits relais `SPST-NO` peuvent parfaitement simuler `VOL+` et `VOL-` ;
+- c'est électriquement la solution la plus universelle tant que la tension/polarité de balayage OEM n'est pas mesurée.
+
+Pour le PCB final, préférer :
+
+- relais statiques **PhotoMOS / OptoMOS à sortie MOSFET bidirectionnelle**, ou
+- interrupteurs analogiques bilatéraux compatibles avec la tension de balayage réellement mesurée.
+
+Éviter de figer un simple transistor NPN/NMOS à la masse avant mesure : la matrice peut être balayée avec une polarité ou une référence qui ne correspond pas à cette hypothèse.
+
+Un PhotoMOS agit comme un contact flottant et bidirectionnel, ce qui reproduit beaucoup mieux un bouton mécanique.
+
+Nombre de canaux :
+
+```text
+2 canaux minimum : VOL+ / VOL-
+5 canaux : tous les boutons
+8 canaux : boutons + trois états de molette
+```
+
+La référence exacte des commutateurs ne sera choisie qu'après mesure sur le faisceau OEM :
+
+- tension maximale entre les 6 lignes au repos ;
+- courant de fermeture d'un bouton ;
+- fréquence éventuelle du balayage.
 
 ## 4. Banc ESP32 + module MCP2518FD
 
@@ -199,27 +269,34 @@ autoradio / étage ampli Renault
 haut-parleurs d'origine
 ```
 
-L'ancien autoradio peut rester connecté à ses alimentations et réseaux nécessaires à son fonctionnement, mais il ne reçoit plus les commandes utilisateur :
+Le volume général doit, à ce stade, rester piloté par l'électronique Renault puisque son niveau n'est pas mémorisé au démarrage.
 
-- CSW isolé sur CAN privé ;
-- commande au volant isolée et lue par RP2040 ;
-- aucun pont logiciel par défaut entre CAN privé CSW et réseau OEM.
-
-Pour le volume, la piste préférée à tester est :
+Principe retenu :
 
 ```text
-autoradio laissé sur AUX avec gain fixe sûr
-volume utilisateur géré par le Raspberry Pi / DAC
+VOL+ / VOL- physiques
+        ↓
+      RP2040
+        ↓
+fermetures OEM synthétiques 4↔1 / 4↔6
+        ↓
+décodeur Renault d'origine
+        ↓
+commande volume système audio
 ```
+
+Le Raspberry reste maître des entrées utilisateur, mais il autorise explicitement les deux commandes de volume à être reproduites vers le chemin OEM.
+
+Le niveau de sortie du Pi/DAC sera donc plutôt maintenu à une valeur de ligne stable et sûre ; éviter de cumuler simultanément une variation logicielle importante et une variation OEM du volume.
 
 À valider sur véhicule :
 
-- l'autoradio reste-t-il sur AUX sans écran/commande OEM ?
-- conserve-t-il son dernier niveau de volume ?
-- a-t-il besoin d'un message réseau spécifique pour le wake, le mute ou la sélection AUX ?
-- risque de bruit, boucle de masse ou niveau de ligne trop élevé ?
-
-Si l'autoradio exige certains messages de service, la solution de secours sera un **gateway à liste blanche** : seules les trames strictement nécessaires à l'ampli seront transférées, jamais les commandes de boutons.
+- tension/courant du balayage de la commande au volant côté décodeur ;
+- durée minimale d'une fermeture reconnue pour VOL+/VOL- ;
+- répétition attendue lors d'un appui long ;
+- comportement AUX/wake de l'autoradio ;
+- niveau ligne optimal du DAC ;
+- bruit, boucle de masse et pops de boot/shutdown.
 
 ## 9. Règle de sécurité réseau
 
@@ -229,4 +306,4 @@ Ne jamais faire un simple pont transparent entre :
 CAN privé CSW ↔ CAN Renault OEM
 ```
 
-Le principe du projet est l'isolation physique des commandes. Toute passerelle future devra être explicitement filtrée par ID/payload et validée sur banc avant branchement véhicule.
+Le principe du projet reste l'arbitrage des commandes par notre électronique. Une commande n'est reproduite vers l'OEM que si elle est explicitement autorisée, comme `VOL+` et `VOL-` dans l'architecture actuelle.
