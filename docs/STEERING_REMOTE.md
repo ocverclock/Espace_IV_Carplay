@@ -131,27 +131,80 @@ Pour l'Espace IV équipé du CNC, cette observation est cohérente avec le rése
 
 Sources externes consultées : schémas Espace IV et retours techniques Planète Renault / GPS-Carminat. Ce chemin doit être considéré comme **DOCUMENTED / EXTERNAL CORROBORATION**, distinct des mesures directes ci-dessus.
 
-Conséquence importante : dans notre projet, deux stratégies sont possibles :
+## Architecture projet : RP2040 comme proxy de commande
 
-1. lire directement les 6 fils avec le RP2040, ce qui est simple et totalement maîtrisé ;
-2. écouter ultérieurement le réseau multimédia pour identifier les trames générées par le tableau de bord lorsqu'on utilise la commande au volant.
+La commande physique au volant sera lue directement par le RP2040. Le RP2040 devient donc l'unique arbitre de l'action utilisateur.
 
-La stratégie 1 reste la plus simple pour l'intégration CarPlay.
+Pour certaines fonctions qui doivent continuer à piloter le système OEM — en particulier le volume — le RP2040 peut **reproduire électriquement la même fermeture de contacts du côté du décodeur Renault**.
 
-## Conséquence pour l'interface RP2040
+Principe :
 
-La commande peut être lue comme un ensemble de **contacts secs** :
+```text
+commande physique
+      │
+      ▼
+    RP2040
+      ├──► événement Raspberry / LIVI si souhaité
+      │
+      └──► contact électronique vers faisceau OEM
+```
 
-- balayage numérique de matrice pour les cinq boutons ;
-- suivi d'état de la molette sur `2↔6`, `2↔3`, `2↔1` ;
-- détection du sens par ordre des transitions ;
-- debounce logiciel nécessaire.
+Pour le volume :
 
-Aucune conversion analogique n'est requise à ce stade.
+```text
+VOL+ : fermer côté OEM les lignes 4 ↔ 1
+VOL- : fermer côté OEM les lignes 4 ↔ 6
+```
+
+Le tableau de bord / afficheur voit alors la même fermeture que si la commande d'origine était encore branchée directement.
+
+Cette approche permet de garder le bouton **physiquement exclusif au RP2040** tout en laissant le RP2040 décider de reproduire ou non certaines commandes OEM.
+
+## Technologie d'émulation de contact
+
+### Prototype
+
+Deux petits relais `SPST-NO` peuvent être utilisés pour `VOL+` et `VOL-`.
+
+Avantages :
+
+- contact réellement flottant ;
+- aucune hypothèse de polarité ;
+- très proche électriquement du bouton mécanique d'origine.
+
+Inconvénients : encombrement, bruit, usure, vitesse limitée.
+
+### PCB final
+
+Préférence : relais statiques à sortie MOSFET bidirectionnelle de type **PhotoMOS / OptoMOS** ou interrupteurs analogiques bilatéraux compatibles avec la tension réellement mesurée sur le faisceau OEM.
+
+Un simple NPN/NMOS raccordé à la masse n'est **pas** retenu avant mesure du balayage, car il suppose une polarité et une référence communes qui ne sont pas encore établies.
+
+Nombre de contacts électroniques nécessaires :
+
+```text
+2 canaux : VOL+ / VOL-
+5 canaux : tous les boutons
+8 canaux : tous les boutons + les 3 états de molette
+```
+
+## Mesures requises avant choix du composant final
+
+Sur le faisceau côté décodeur Renault, commande au volant débranchée :
+
+1. relever les tensions entre les six lignes et la masse ;
+2. relever les tensions entre paires pertinentes ;
+3. mesurer le courant lors d'une fermeture `4↔1` puis `4↔6` ;
+4. observer si les lignes sont balayées périodiquement ;
+5. mesurer la durée minimale d'appui reconnue ;
+6. relever le comportement d'un appui long.
+
+Ces mesures détermineront la référence exacte du PhotoMOS/interrupteur analogique.
 
 ## À confirmer ultérieurement
 
 - fonction OEM exacte du **bouton inférieur** ;
-- sens fonctionnel à associer à la séquence `6 → 3 → 1` (molette haut/bas ou précédent/suivant selon l'usage Renault) ;
+- sens fonctionnel à associer à la séquence `6 → 3 → 1` ;
 - comportement aux transitions rapides pour dimensionner le debounce ;
-- trame multimédia correspondante émise par le tableau de bord pour chaque action, si l'on décide de documenter aussi le chemin OEM complet.
+- trame multimédia correspondante émise par le tableau de bord pour chaque action, si l'on décide de documenter aussi le chemin OEM complet ;
+- tension/courant de balayage côté décodeur OEM pour figer le composant d'émulation.
