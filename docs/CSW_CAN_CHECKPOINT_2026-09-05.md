@@ -66,23 +66,69 @@ Première lecture utilisateur obtenue sur une pression de commande :
 ```text
 Identifier = 0x681
 Payload    = F0 0A 0A 01 FF FF FF FF
-DLC        = 8 (cohérent avec les 8 octets visibles)
+DLC        = 8
 ```
 
-Un octet/valeur `CA` a aussi été vu à proximité dans PulseView, mais il n'est **pas encore classé comme donnée utile** : avec `DLC = 8`, les huit octets de payload sont ceux listés ci-dessus. `CA` peut appartenir à un autre champ (CRC/annotation/élément voisin) et doit être identifié avant d'être retenu.
+La valeur `CA` vue à proximité dans PulseView n'est pas un neuvième octet de payload : avec `DLC = 8`, les huit octets utiles sont ceux ci-dessus.
 
-Statut : **MEASURED / USER REPORTED — fonction de la commande capturée à préciser**.
+### Vérification directe du fichier PulseView
 
-## Prochaine étape
+Capture fournie :
+
+```text
+csw_bouton_test_01.sr
+```
+
+Le fichier sigrok contient :
+
+```text
+sample rate = 8 MHz
+5 000 000 échantillons
+D0 = TXD
+D5 = RXD
+```
+
+Analyse directe des échantillons :
+
+- D0 et D5 contiennent le même trafic, avec un décalage d'environ 2 échantillons seulement entre TXD et RXD ;
+- la première activité commence vers `417,59 ms` dans cette capture ;
+- `184` occurrences valides de la même trame `0x681` ont été retrouvées ;
+- payload identique sur ces occurrences : `F0 0A 0A 01 FF FF FF FF` ;
+- la séquence d'émissions observée dure environ `50,15 ms` dans ce fichier ;
+- aucune autre valeur de payload n'a été trouvée dans cette capture.
+
+Cette analyse confirme indépendamment le décodage PulseView de la première trame.
+
+Statut : **CAPTURE FILE ANALYZED — 2026-09-05**.
+
+## Trame sans action utilisateur
+
+Observation utilisateur supplémentaire : **le CSW émet également au moins une trame sans aucun appui**.
+
+Conséquence importante : `0x681` et/ou un payload particulier ne doivent pas être assimilés directement à une commande avant comparaison avec l'état de repos. Il faut désormais distinguer :
+
+```text
+repos / heartbeat
+appui
+maintien
+relâchement
+rotation / déplacement
+```
+
+Le fichier `csw_bouton_test_01.sr` ne permet pas encore d'identifier la trame de repos annoncée : dans ce fichier, l'activité détectée est concentrée dans une fenêtre d'environ 50 ms. Une capture dédiée sans aucune action est nécessaire pour établir le baseline.
+
+Statut : **USER OBSERVED — baseline exact à capturer**.
+
+## Méthode de reverse engineering à partir de maintenant
 
 Pour chaque commande du CSW :
 
-1. capturer une pression / rotation isolée ;
-2. relever l'identifiant CAN exact ;
-3. relever les 8 octets de données ;
-4. comparer repos / appui / maintien / relâchement ;
-5. construire une table fonction → ID + payload ;
-6. exporter les captures / annotations PulseView pour éviter les relevés manuels ;
+1. faire d'abord une capture `idle` sans toucher au boîtier ;
+2. sauvegarder la capture complète en `.sr` ;
+3. faire ensuite une capture avec une seule commande isolée ;
+4. comparer les IDs, payloads et périodicités ;
+5. relever séparément appui, maintien et relâchement si le comportement change ;
+6. construire une table fonction → ID + payload + transition ;
 7. ajouter ensuite un second nœud CAN actif pour fournir l'ACK et valider le comportement nominal.
 
 Ne pas retenir les anciens décodages incohérents (`DLC 15`, CRC-21, octets > 8) : ils provenaient d'une capture sans terminaison correcte et/ou d'entrées flottantes.
