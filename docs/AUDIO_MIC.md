@@ -7,15 +7,19 @@ Conserver l’amplification et les haut-parleurs Renault autant que possible, to
 ## Piste principale
 
 ```text
-Pi / LIVI
-  ↓
-DAC / sortie ligne
-  ↓
-AUX Renault
-  ↓
+Pi / LIVI / autres sources audio
+          ↓
+    mixeur logiciel
+          ↓
+ niveau master fixe / calibré
+          ↓
+     DAC / sortie ligne
+          ↓
+      AUX Renault
+          ↓
 autoradio / étage ampli Renault
-  ↓
-haut-parleurs d'origine
+          ↓
+ haut-parleurs d'origine
 ```
 
 ## Commandes utilisateur
@@ -26,24 +30,24 @@ Les commandes physiques ne restent pas reliées directement au système OEM :
 - commande au volant lue directement par RP2040 ;
 - le RP2040 décide quelles actions restent internes au Raspberry et lesquelles sont reproduites vers l'électronique Renault.
 
-## Volume — stratégie corrigée
+## Volume — stratégie retenue
 
 Observation utilisateur : **le volume de l'autoradio Renault n'est pas conservé au démarrage**.
 
-Conséquence : la stratégie précédente "autoradio laissé à un niveau fixe + volume quotidien uniquement côté Pi/DAC" n'est plus la stratégie principale.
+Le volume général doit donc rester géré par l'électronique Renault. Le Raspberry ne sert pas de second potentiomètre de volume général.
 
-Le chemin privilégié devient :
+Architecture :
 
 ```text
 VOL+ / VOL- physiques
        ↓
      RP2040
        ↓
-fermeture électronique des mêmes paires que la commande d'origine
+contacts électroniques flottants
        ↓
 décodeur Renault d'origine
        ↓
-système audio / volume OEM
+volume OEM / ampli Renault
 ```
 
 Contacts mesurés :
@@ -53,18 +57,80 @@ VOL+ = 4 ↔ 1
 VOL- = 4 ↔ 6
 ```
 
-Le RP2040 devient donc un **proxy filtrant** :
+Le RP2040 devient un **proxy filtrant** :
 
 - la commande physique est exclusive à notre électronique ;
 - le vieux système ne voit jamais directement le bouton ;
-- le RP2040 peut néanmoins simuler un appui OEM uniquement pour `VOL+` / `VOL-` ;
+- le RP2040 reproduit volontairement `VOL+` / `VOL-` vers le décodeur OEM ;
 - les autres commandes peuvent rester exclusivement utilisées par LIVI/CarPlay.
 
-Pour le prototype, deux relais SPST-NO conviennent. Pour le PCB final, privilégier des contacts électroniques flottants/bidirectionnels de type PhotoMOS/OptoMOS ou un interrupteur analogique adapté à la tension de balayage réellement mesurée.
+### Progression du volume
 
-Ne pas choisir un simple NPN/NMOS à la masse avant mesure du balayage OEM.
+La stratégie la plus naturelle est de reproduire la **durée réelle de fermeture** :
 
-Le DAC du Pi sera maintenu à un niveau de ligne stable et sûr. Éviter une double variation simultanée du volume logiciel Pi et du volume OEM.
+```text
+appui court VOL+  → fermeture 4↔1 pendant la durée de l'appui
+appui maintenu    → 4↔1 reste fermé tant que le bouton est maintenu
+relâchement       → ouverture immédiate
+```
+
+Même principe pour `VOL-` avec `4↔6`.
+
+Si le décodeur Renault gère lui-même l'auto-répétition lors d'un appui maintenu, on récupère ainsi exactement la progression OEM sans avoir à fabriquer une cadence artificielle. Cela doit être confirmé sur véhicule.
+
+## Contact électronique final — PhotoMOS / OptoMOS
+
+Un PhotoMOS/OptoMOS n'est pas un optocoupleur qui pilote un relais mécanique. C'est un **relais statique optiquement commandé** :
+
+```text
+GPIO RP2040
+   ↓
+résistance LED
+   ↓
+LED interne
+   ║ isolation optique
+   ↓
+MOSFET(s) de sortie
+   ↓
+contact flottant électronique
+```
+
+Les versions adaptées à notre usage utilisent typiquement deux MOSFETs montés tête-bêche, ce qui donne un contact :
+
+- sans clic ;
+- sans pièce mécanique ;
+- flottant par rapport au RP2040 ;
+- bidirectionnel ;
+- normalement ouvert ;
+- proche électriquement d'un petit bouton mécanique.
+
+Pour le PCB final, cette famille est préférée aux relais mécaniques si les mesures OEM confirment que tension, courant et résistance ON sont compatibles.
+
+Ne pas choisir la référence exacte avant mesure du balayage OEM.
+
+## Mixage logiciel Raspberry
+
+Le **master de sortie du Raspberry/DAC reste fixe et calibré**. Le mixeur logiciel sert uniquement à équilibrer les sources générées par le Raspberry entre elles.
+
+Exemple logique :
+
+```text
+CarPlay musique ──────┐
+Navigation ───────────┤
+Siri / appels ────────┤→ PipeWire / ALSA mixer → master fixe → DAC
+sons système ─────────┤
+alertes locales ──────┘
+```
+
+Le mixeur peut gérer :
+
+- gain relatif par source ;
+- ducking de la musique pendant navigation / Siri ;
+- priorité appels ;
+- mute par source ;
+- limiteur / marge de sécurité pour éviter le clipping.
+
+Le **volume utilisateur global** reste ensuite appliqué par l'électronique Renault.
 
 ## A vérifier sur véhicule
 
@@ -73,9 +139,11 @@ Le DAC du Pi sera maintenu à un niveau de ligne stable et sûr. Éviter une dou
 - courant lorsqu'un contact VOL+/VOL- est fermé ;
 - fréquence éventuelle de balayage ;
 - durée d'impulsion reconnue pour un appui court ;
-- comportement d'un appui long / auto-répétition ;
+- comportement d'un appui long : fermeture continue ou autre séquence ;
+- auto-répétition réellement gérée par le décodeur OEM ;
 - comportement AUX/wake de l'autoradio ;
-- niveau ligne ;
+- niveau ligne fixe optimal du DAC ;
+- headroom logiciel nécessaire ;
 - masse ;
 - boucle de masse ;
 - mute téléphone ;
