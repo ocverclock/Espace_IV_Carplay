@@ -59,6 +59,20 @@ Statut : **MEASURED / USER CONFIRMED — 2026-09-05**.
 
 Les trames se répètent sur le banc. En l'absence d'un second nœud CAN actif capable d'acquitter, une répétition liée à l'absence d'ACK est plausible ; cela reste à confirmer avec une interface CAN active.
 
+## Première trame décodée
+
+Première lecture utilisateur obtenue sur une pression de commande :
+
+```text
+Identifier = 0x681
+Payload    = F0 0A 0A 01 FF FF FF FF
+DLC        = 8 (cohérent avec les 8 octets visibles)
+```
+
+Un octet/valeur `CA` a aussi été vu à proximité dans PulseView, mais il n'est **pas encore classé comme donnée utile** : avec `DLC = 8`, les huit octets de payload sont ceux listés ci-dessus. `CA` peut appartenir à un autre champ (CRC/annotation/élément voisin) et doit être identifié avant d'être retenu.
+
+Statut : **MEASURED / USER REPORTED — fonction de la commande capturée à préciser**.
+
 ## Prochaine étape
 
 Pour chaque commande du CSW :
@@ -68,6 +82,7 @@ Pour chaque commande du CSW :
 3. relever les 8 octets de données ;
 4. comparer repos / appui / maintien / relâchement ;
 5. construire une table fonction → ID + payload ;
-6. ajouter ensuite un second nœud CAN actif pour fournir l'ACK et valider le comportement nominal.
+6. exporter les captures / annotations PulseView pour éviter les relevés manuels ;
+7. ajouter ensuite un second nœud CAN actif pour fournir l'ACK et valider le comportement nominal.
 
 Ne pas retenir les anciens décodages incohérents (`DLC 15`, CRC-21, octets > 8) : ils provenaient d'une capture sans terminaison correcte et/ou d'entrées flottantes.
