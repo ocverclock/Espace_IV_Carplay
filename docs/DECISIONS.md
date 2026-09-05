@@ -70,18 +70,40 @@
 **Raison :** plusieurs schémas publics concordent, mais la documentation fabricant complète n’est pas publiquement disponible.  
 **Condition avant PCB :** revérifier orientation/footprint fournisseur et faire un contrôle de continuité avant première alimentation.
 
-## D016 — Commandes Renault exclusives au Raspberry Pi
-**Décision :** les commandes utilisateur Renault ne doivent pas rester reliées en parallèle au chemin de commande OEM.
+## D016 — Commandes Renault arbitrées par notre électronique
+**Décision :** les commandes utilisateur Renault ne doivent pas rester reliées passivement en parallèle au chemin de commande OEM.
 
 Architecture retenue :
 
 - `CSW-2000R` isolé du CAN multimédia Renault et raccordé à un **bus CAN privé** vers un MCP2518FD du système Raspberry Pi ;
 - commande au volant `7701049643` déconnectée du décodeur OEM et lue directement par le RP2040 ;
 - aucun pont transparent entre le bus privé CSW et le CAN Renault ;
-- l’ancien autoradio peut rester alimenté et connecté aux réseaux nécessaires à son rôle d’amplification, mais il ne reçoit pas les commandes des boutons du nouveau système.
+- le RP2040 peut toutefois reproduire volontairement certaines commandes vers le chemin OEM sous forme de fermetures de contacts synthétiques.
 
-**Raison :** éviter qu’une même pression soit interprétée simultanément par LIVI et par l’ancien autoradio/CNC. L’isolation physique est plus simple et plus déterministe qu’un filtrage logiciel.
-
-**Fallback :** si l’ancien autoradio exige certaines trames réseau pour son wake, son mute ou son fonctionnement AUX, une passerelle à liste blanche pourra être ajoutée ultérieurement. Elle ne devra jamais relayer par défaut les trames de commandes utilisateur.
+**Raison :** éviter qu’une même pression soit interprétée simultanément et sans contrôle par LIVI et par l’ancien autoradio/CNC. Notre électronique doit décider explicitement de la destination de chaque commande.
 
 **Document :** `hardware/espace_iv_interface_v1/WIRING_DRAFT.md`.
+
+## D017 — Volume OEM via émulation des contacts de la commande au volant
+**Observation :** le niveau de volume de l'autoradio Renault n'est pas conservé au démarrage.
+
+**Décision de travail :** conserver le contrôle de volume OEM et faire du RP2040 un proxy de la commande au volant.
+
+Contacts mesurés :
+
+```text
+VOL+ = 4 ↔ 1
+VOL- = 4 ↔ 6
+```
+
+Le RP2040 lit la commande physique puis, pour `VOL+` ou `VOL-`, ferme électroniquement les mêmes paires **sur le côté faisceau/décodeur OEM**. Le tableau de bord / afficheur Renault continue ainsi à générer la commande numérique audio d'origine.
+
+**Prototype :** deux petits relais SPST-NO sont acceptables.
+
+**PCB final :** préférer des contacts bidirectionnels flottants de type PhotoMOS/OptoMOS ou un interrupteur analogique bilatéral adapté. La référence exacte dépendra de mesures de tension/courant sur le faisceau OEM.
+
+**Ne pas utiliser par défaut :** transistor NPN/NMOS simple vers masse avant d'avoir caractérisé le balayage de la matrice.
+
+**Conséquence audio :** le DAC Raspberry est maintenu à un niveau de ligne stable ; le volume utilisateur général reste réglé par l'électronique Renault.
+
+**Documents :** `docs/STEERING_REMOTE.md`, `docs/AUDIO_MIC.md`, `hardware/espace_iv_interface_v1/WIRING_DRAFT.md`.
