@@ -38,7 +38,8 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 | DAC audio | USB/I2S sortie ligne | 1 | WAIT | P1 | 10–30 € |
 | Isolation audio | transformateur ligne 1:1 / solution anti-boucle de masse, si nécessaire | 1 | WAIT | P2 | 5–20 € |
 | Micro | réemploi Renault ou automobile | 1 | WAIT | P1 | 0–20 € |
-| Alimentation auto | buck 12→5 V + protections | 1 | DESIGN | P1 | 15–40 € |
+| Alimentation Pi automobile | convertisseur buck automobile `12 V véhicule → 5,1 V`, **3 A minimum**, cible **5 A** de marge, entrée large (`~9–36 V` ou mieux), protections transitoires/inversion | 1 | SELECT | P1 | 15–40 € |
+| Protection alimentation | porte-fusible MINI 18 AWG + fusible dimensionné après mesure consommation; TVS + protection inversion + filtrage sur alimentation finale | 1 lot | SELECT/DESIGN | P1 | à chiffrer |
 | PCB interface V1 | JLCPCB/équivalent | 1 lot | WAIT | P2 | à chiffrer |
 | ELS27 | V5/V5.2 Full | 1 | DEFERRED | P4 | ~150 € |
 
@@ -64,6 +65,9 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 - une résistance `390 Ω` depuis un GPIO 3,3 V est retenue comme valeur de prototype, à valider sur banc ;
 - si toute la matrice doit être réémulée, prévoir jusqu'à 8 contacts électroniques indépendants ;
 - le module RP2040 reçu est bien une carte compacte sérigraphiée `RP2040-Zero`, avec USB-C et boutons `BOOT` / `RESET`; relever le pinout exact depuis la sérigraphie du module reçu avant câblage définitif ;
+- pour le Pi 4, **ne jamais injecter le 12 V véhicule directement** : utiliser un buck automobile stabilisé vers `5,1 V`; alimentation par USB-C préférée pour le prototype/final, plutôt que par les pins 5 V GPIO ;
+- placer le fusible 12 V au plus près du point de prélèvement véhicule ;
+- la coupure ACC ne doit pas supprimer brutalement le 5 V du Pi : prévoir une logique de shutdown propre puis coupure temporisée de l'alimentation ;
 - ne pas commander le troisième CAN avant d’avoir prouvé le besoin de deux réseaux véhicule simultanés en plus du CSW privé ;
 - ne pas commander l’écran avant d’avoir validé dimensions extérieures, luminosité et connectique ;
 - pour le PCB MFi final, préférer assemblage professionnel du DFN/XDFN.
