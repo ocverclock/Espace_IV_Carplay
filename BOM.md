@@ -26,7 +26,7 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 | Proxy contacts OEM | Vishay `VO14642AT`, relais statique optique MOSFET `1 Form A`, DIP-6, 60 V, RON max 0,25 Ω | 5 conseillé | SELECT | P0 | ~7 € le lot AliExpress vu le 2026-09-05 |
 | Résistances LED VO14642AT | `390 Ω`, 1/4 W | 8 | SELECT | P0 | <2 € |
 | Écran | 7" IPS HDMI, non tactile, forte luminosité | 1 | SELECT | P1 | 40–80 € |
-| RP2040 prototype | modules compacts type `RP2040-Zero`, USB-C, commandés | 2 | BOUGHT | P1 | acheté / en livraison |
+| RP2040 prototype | modules compacts `RP2040-Zero`, USB-C, boutons `BOOT` + `RESET`; au moins un exemplaire reçu et identifié sur photo le `2026-09-07` | 2 | HAVE | P1 | acheté |
 | MFi CP3.0 | Microchip `MFI343S00177-L`, LCSC `C33770534` | 2 conseillé | SELECT | P1 | quelques € |
 | Passifs MFi | 4.7 kΩ ×2, 33 Ω ×2, 100 nF, 1 µF | 1 lot | SELECT | P1 | <5 € |
 | Commutation MFi | load-switch 3.3 V actif haut, EN compatible GPIO 3.3 V | 1 | DESIGN | P1 | <5 € |
@@ -63,7 +63,7 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 - le `VO14642AT` s'utilise en configuration AC/DC avec pins `4` et `6` comme contact de sortie ; pin `5` non utilisée ; pins `1/2` = LED d'entrée ;
 - une résistance `390 Ω` depuis un GPIO 3,3 V est retenue comme valeur de prototype, à valider sur banc ;
 - si toute la matrice doit être réémulée, prévoir jusqu'à 8 contacts électroniques indépendants ;
-- deux modules compacts `RP2040-Zero` sont déjà commandés pour le prototype commandes ;
+- le module RP2040 reçu est bien une carte compacte sérigraphiée `RP2040-Zero`, avec USB-C et boutons `BOOT` / `RESET`; relever le pinout exact depuis la sérigraphie du module reçu avant câblage définitif ;
 - ne pas commander le troisième CAN avant d’avoir prouvé le besoin de deux réseaux véhicule simultanés en plus du CSW privé ;
 - ne pas commander l’écran avant d’avoir validé dimensions extérieures, luminosité et connectique ;
 - pour le PCB MFi final, préférer assemblage professionnel du DFN/XDFN.
