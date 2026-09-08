@@ -1,6 +1,6 @@
 # Espace IV Modernisation Multimédia — PROJECT_STATE
 
-Dern mise à jour : 2026-09-08
+Dernière mise à jour : 2026-09-08
 
 Ce fichier est le **checkpoint global et la source de vérité principale** du projet.
 
