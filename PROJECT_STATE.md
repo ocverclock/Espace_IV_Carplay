@@ -1,6 +1,6 @@
 # Espace IV Modernisation Multimédia — PROJECT_STATE
 
-Dernière mise à jour : 2026-09-04
+Dern mise à jour : 2026-09-08
 
 Ce fichier est le **checkpoint global et la source de vérité principale** du projet.
 
@@ -291,9 +291,10 @@ Couleurs :
 ```text
 volume −         = 4 + 6
 volume +         = 4 + 1
-source −         = 3 + 5
-source +         = 6 + 5
-bouton inférieur = 2 + 4
+source droite    = 3 + 5
+source gauche     = 5 + 6
+bouton inférieur = 3 + 4
+mute              = volume + et volume - simultanés
 ```
 
 La fonction OEM exacte du bouton inférieur reste inconnue.
@@ -446,7 +447,16 @@ Document : `docs/DISPLAY.md`.
 
 Rôle prévu : commande au volant, debounce, molette, reverse, ACC/illumination et USB HID vers Pi.
 
-La commande au volant étant maintenant cartographiée comme contacts secs, son interface RP2040 devient simple à prototyper.
+Le prototype RP2040-Zero de commande au volant est validé sur banc :
+
+- commande pins 1..6 vers GP0..GP5 ;
+- balayage numérique des six contacts secs ;
+- cinq boutons reconnus ;
+- `VOL+ + VOL−` reconnus comme `MUTE` ;
+- molette décodée dans les deux sens avec incrément/décrément ;
+- debounce logiciel opérationnel.
+
+Prochaine étape : remplacer les sorties série de test par des événements USB HID vers le Raspberry Pi.
 
 Pour le CSW, le RP2040 n’est plus la voie principale tant que le décodage CAN d’origine reste réaliste.
 
@@ -551,12 +561,21 @@ Prochaines étapes :
 
 ### P1 — commande au volant
 
-Cartographie électrique acquise. Reste :
+Cartographie et prototype RP2040-Zero validés sur banc le 2026-09-08.
 
-1. fonction du bouton inférieur ;
-2. sens fonctionnel de la molette ;
-3. test rebonds / transitions rapides ;
-4. prototype RP2040.
+Acquis :
+
+1. correction du bouton inférieur : `3 + 4` ; ancien `2 + 4` invalidé ;
+2. source gauche `5 + 6`, source droite `3 + 5` ;
+3. mute par appui simultané sur volume + et volume − ;
+4. scan, debounce, nommage des boutons et molette bidirectionnelle opérationnels.
+
+Reste :
+
+1. identifier la fonction OEM du bouton inférieur ;
+2. convertir les événements en USB HID vers le Raspberry Pi ;
+3. définir le mapping final LIVI ;
+4. ajouter ensuite reverse et ACC/illumination.
 
 Autres P1 : écran final, caméra, audio, alimentation automobile.
 
@@ -588,7 +607,7 @@ Pour isoler complètement le wake, mesurer à l'occasion `C3` avec `CN1-1` déco
 
 ### Commande au volant
 
-Le brochage passif est acquis. Prochaine validation utile : déterminer quel sens physique de la molette correspond à `2+6 → 2+3 → 2+1`, puis tester les rebonds avant implémentation RP2040.
+Le prototype RP2040-Zero est opérationnel sur banc. Prochaine action : exposer les commandes validées en USB HID vers le Raspberry Pi, puis définir le mapping LIVI définitif.
 
 ### En parallèle
 
