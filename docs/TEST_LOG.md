@@ -393,3 +393,60 @@ Document détaillé : `docs/STEERING_REMOTE.md`.
 2. associer le sens fonctionnel de la molette à la séquence `6 → 3 → 1` ;
 3. vérifier les transitions rapides / rebonds ;
 4. préparer la lecture numérique par RP2040.
+
+
+## 2026-09-08 — Commande au volant sur RP2040-Zero
+
+Carte : Waveshare RP2040-Zero, programmée avec Arduino IDE.
+
+Câblage de banc :
+
+```text
+commande pin 1 → GP0
+commande pin 2 → GP1
+commande pin 3 → GP2
+commande pin 4 → GP3
+commande pin 5 → GP4
+commande pin 6 → GP5
+```
+
+La commande était utilisée comme réseau passif de contacts secs, séparée du faisceau OEM.
+
+### Cartographie corrigée et confirmée
+
+```text
+volume −         = 4 + 6
+volume +         = 1 + 4
+source gauche    = 5 + 6
+source droite    = 3 + 5
+bouton inférieur = 3 + 4
+mute              = volume + et volume - simultanés
+```
+
+L'ancien relevé `bouton inférieur = 2 + 4` est invalidé.
+
+Molette confirmée :
+
+```text
+sens positif : 2+6 → 2+3 → 2+1
+sens négatif : séquence inverse
+```
+
+### Firmware testé
+
+Le prototype effectue :
+
+- balayage des six lignes, une sortie `LOW` à la fois ;
+- lecture des autres lignes en `INPUT_PULLUP` ;
+- debounce logiciel ;
+- détection sur front pour les boutons ;
+- fenêtre de 60 ms pour distinguer volume simple et combinaison mute ;
+- verrouillage du mute jusqu'au relâchement ;
+- décodage circulaire des trois états de molette ;
+- incrémentation/décrémentation d'une valeur de diagnostic.
+
+Résultat : boutons, mute et molette pleinement opérationnels sur le banc.
+
+Statut : **BENCH TESTED / USER CONFIRMED — 2026-09-08**.
+
+Firmware : `firmware/rp2040/steering_remote_test/steering_remote_test.ino`.
