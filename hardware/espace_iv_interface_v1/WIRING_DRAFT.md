@@ -99,12 +99,27 @@ Contacts mesurés :
 ```text
 volume -         = 4 + 6
 volume +         = 4 + 1
-source -         = 3 + 5
-source +         = 6 + 5
-bouton inférieur = 2 + 4
+source droite    = 3 + 5
+source gauche     = 5 + 6
+bouton inférieur = 3 + 4
+mute              = volume + et volume - simultanés
 molette sens A   = 2+6 → 2+3 → 2+1
 molette sens B   = 2+1 → 2+3 → 2+6
 ```
+
+### Prototype RP2040-Zero validé
+
+Câblage de banc confirmé :
+
+```text
+commande 1..6 → RP2040-Zero GP0..GP5
+```
+
+Le scanner numérique, le debounce, le nommage des boutons, la combinaison `MUTE` et le décodage incrémental de la molette sont validés sur le matériel réel.
+
+Firmware : `firmware/rp2040/steering_remote_test/steering_remote_test.ino`.
+
+Statut : **BENCH TESTED / USER CONFIRMED — 2026-09-08**.
 
 ### Proxy de volume OEM
 
