@@ -39,11 +39,14 @@ Les commandes sont passives et ferment les paires suivantes :
 |---|---|---|
 | A | volume − | `4 + 6` |
 | B | volume + | `4 + 1` |
-| C | source − | `3 + 5` |
-| D | source + | `6 + 5` |
-| E | bouton inférieur — fonction OEM encore inconnue | `2 + 4` |
+| C | source droite | `3 + 5` |
+| D | source gauche | `5 + 6` |
+| E | bouton inférieur — fonction OEM encore inconnue | `3 + 4` |
 
-Correction importante : `D = source +` est **`6 + 5`**. L'ancien relevé `2 + 5` est invalidé.
+Corrections importantes :
+
+- `source gauche = 5 + 6` et `source droite = 3 + 5` ;
+- `bouton inférieur = 3 + 4` ; l'ancien relevé `2 + 4` est invalidé.
 
 Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
 
@@ -79,27 +82,50 @@ Cela montre que la direction de rotation peut être déterminée à partir de l'
 
 Statut : **MEASURED / USER CONFIRMED — 2026-09-04**.
 
+## Validation RP2040-Zero — 2026-09-08
+
+Prototype validé avec la correspondance suivante :
+
+```text
+commande pin 1 → GP0
+commande pin 2 → GP1
+commande pin 3 → GP2
+commande pin 4 → GP3
+commande pin 5 → GP4
+commande pin 6 → GP5
+```
+
+Le firmware de banc :
+
+- balaie les six lignes, une sortie basse à la fois, avec les autres en `INPUT_PULLUP` ;
+- applique un debounce logiciel ;
+- reconnaît les cinq boutons ;
+- reconnaît `VOL+ + VOL−` simultanés comme la commande `MUTE` ;
+- décode les deux sens de la molette et incrémente/décrémente une valeur de test.
+
+Statut : **BENCH TESTED / USER CONFIRMED — 2026-09-08**.
+
 ## Carte fonctionnelle actuelle
 
 ```text
 pin 1 ─┬─ volume + avec pin 4
        └─ état molette avec commun pin 2
 
-pin 2 ─┬─ commun molette
-       └─ bouton inférieur avec pin 4
+pin 2 └─ commun molette vers pins 6, 3 et 1
 
-pin 3 ─┬─ source − avec pin 5
+pin 3 ─┬─ source droite avec pin 5
+       ├─ bouton inférieur avec pin 4
        └─ état molette avec commun pin 2
 
 pin 4 ─┬─ volume − avec pin 6
        ├─ volume + avec pin 1
-       └─ bouton inférieur avec pin 2
+       └─ bouton inférieur avec pin 3
 
-pin 5 ─┬─ source − avec pin 3
-       └─ source + avec pin 6
+pin 5 ─┬─ source droite avec pin 3
+       └─ source gauche avec pin 6
 
 pin 6 ─┬─ volume − avec pin 4
-       ├─ source + avec pin 5
+       ├─ source gauche avec pin 5
        └─ état molette avec commun pin 2
 ```
 
