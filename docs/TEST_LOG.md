@@ -450,3 +450,25 @@ Résultat : boutons, mute et molette pleinement opérationnels sur le banc.
 Statut : **BENCH TESTED / USER CONFIRMED — 2026-09-08**.
 
 Firmware : `firmware/rp2040/steering_remote_test/steering_remote_test.ino`.
+
+
+## Essai sur banc — 2026-09-10 : LIVI installé et démarré
+
+- Banc Raspberry Pi 4 sur microSD, image avec bureau préparée avec Raspberry Pi Imager 1.7.2.
+- SSH fonctionnel : `ssh pi@raspberry-carplay.local`. Aucun écran physique disponible pour le moment.
+- OS mesuré : Debian GNU/Linux 13 (trixie), DEBIAN_VERSION_FULL=13.5 ; `uname -m = aarch64`.
+- LIVI v8.3.0 installé dans `/home/pi/LIVI/LIVI.AppImage` (environ 309 Mio).
+- Installateur desktop et AppImage épinglés à v8.3.0 après incompatibilité entre installateur main et release (marqueur sudoers `__PYTHON__` non remplacé). Validation sudoers réussie avec l'installateur correspondant.
+- Après redémarrage : `graphical.target`, display-manager actif, session Wayland active ; lancement automatique par `/home/pi/.config/autostart/LIVI.desktop`.
+- Logs : `/home/pi/.xsession-errors`. Le dossier `~/.config/LIVI/log/` était vide. `journalctl --user` ne retournait rien ; `sudo journalctl -b _UID=1000` permettait la lecture.
+- Initialisation graphique confirmée : OpenGL ES 3.1, Mesa 26.2.1, pilote v3d / Broadcom V3D 4.2.14.0. Compositeur LIVI sur wayland-1 au-dessus du bureau wayland-0, sortie logique main 1280×752, fenêtre LIVI affectée à main.
+- GStreamer 1.28.4 embarqué détecte H.264/H.265 matériels et logiciels ; aucun flux réel encore validé.
+- Assistant Python et surveillance CarPlay filaire démarrés ; zéro iPhone actif.
+- MFi non raccordé/configuré pour ce test : erreur d'initialisation FileNotFoundError attendue dans ce contexte. CarPlay natif NON validé. Les GPIO/bus MFi documentés restent une cible de câblage, pas une configuration matérielle validée.
+- Sans-fil désactivé (aaWireless=false, cpWireless=false), Bluetooth et point d'accès inactifs.
+- Avertissements VA-API/Vulkan, RTKit et portail Wayland observés : pas de blocage du démarrage démontré ; ne pas modifier au hasard la pile graphique.
+- Connexion du RP2040 au Pi explicitement reportée par David. Le prototype boutons/mute/molette du 8 septembre reste acquis ; USB HID pas encore implémenté.
+- Prochaine étape proposée : préparer un accès au bureau à distance sans écran pour voir/configurer LIVI, en vérifiant d'abord la compatibilité Wayland et l'absence de sortie physique. Aucun accès graphique distant n'a encore été installé ou validé.
+- Restent à valider : image réelle, navigation, vidéo projetée, audio/micro/Siri, MFi et CarPlay, puis HID. Aucun de ces résultats ne doit être déduit de la seule présence des processus.
+
+Preuves : sorties terminal transmises par David (installation, processus et .xsession-errors), dont les pièces jointes Texte collé(20260910-101131).txt et Texte collé(20260910-101305).txt. Résumé des preuves enregistré ici ; pièces brutes non ajoutées au dépôt.
