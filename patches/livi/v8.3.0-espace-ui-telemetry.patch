@@ -1,0 +1,528 @@
+diff --git a/src/main/ipc/settings.ts b/src/main/ipc/settings.ts
+index 48c0ca8..f6e5364 100644
+--- a/src/main/ipc/settings.ts
++++ b/src/main/ipc/settings.ts
+@@ -14,6 +14,8 @@ import { currentKiosk } from '@main/window/utils'
+ import { ICON_120_B64, ICON_180_B64, ICON_256_B64 } from '@shared/assets/carIcons'
+ import type { Config } from '@shared/types'
+ import { app } from 'electron'
++import { readFile } from 'node:fs/promises'
++import { join } from 'node:path'
+ 
+ export function registerSettingsIpc(runtimeState: runtimeStateProps) {
+   registerIpcHandle('settings:get-kiosk', () => currentKiosk(runtimeState.config))
+@@ -44,6 +46,19 @@ export function registerSettingsIpc(runtimeState: runtimeStateProps) {
+ 
+   registerIpcHandle('app:getVersion', () => app.getVersion())
+ 
++  registerIpcHandle('app:readCustomCss', async () => {
++    const file = join(app.getPath('userData'), 'custom', 'espace-ui.css')
++    try {
++      return await readFile(file, 'utf8')
++    } catch (error) {
++      const code = (error as NodeJS.ErrnoException)?.code
++      if (code !== 'ENOENT') {
++        console.warn(`[custom-ui] unable to read ${file}:`, error)
++      }
++      return ''
++    }
++  })
++
+   registerIpcHandle('app:listDisplayModes', () => listHostOutputModes())
+ 
+   registerIpcHandle('app:listWifiChannels', () => listWifiChannels(runtimeState.config.wifiType))
+diff --git a/src/preload/index.ts b/src/preload/index.ts
+index 61c5ad0..ab66a58 100644
+--- a/src/preload/index.ts
++++ b/src/preload/index.ts
+@@ -232,6 +232,7 @@ const appApi = {
+   platform: process.platform,
+   compositor: process.env.LIVI_COMPOSITOR === '1',
+   getVersion: (): Promise<string> => ipcRenderer.invoke('app:getVersion'),
++  readCustomCss: (): Promise<string> => ipcRenderer.invoke('app:readCustomCss'),
+   listDisplayModes: (): Promise<string[]> => ipcRenderer.invoke('app:listDisplayModes'),
+   listWifiChannels: (): Promise<number[]> => ipcRenderer.invoke('app:listWifiChannels'),
+   listWifiCountryCodes: (): Promise<string[]> => ipcRenderer.invoke('app:listWifiCountryCodes'),
+diff --git a/src/renderer/src/components/pages/projection/Projection.tsx b/src/renderer/src/components/pages/projection/Projection.tsx
+index 5519923..226ea9f 100644
+--- a/src/renderer/src/components/pages/projection/Projection.tsx
++++ b/src/renderer/src/components/pages/projection/Projection.tsx
+@@ -1,6 +1,5 @@
+ // Icons
+-import CropPortraitOutlinedIcon from '@mui/icons-material/CropPortraitOutlined'
+-import { Box, useTheme } from '@mui/material'
++import { Box, Typography, useTheme } from '@mui/material'
+ import type { Config } from '@shared/types'
+ import { AudioCommand, CommandMapping } from '@shared/types/ProjectionEnums'
+ import { aaContentArea, isClusterDisplayed } from '@shared/utils'
+@@ -40,38 +39,81 @@ function StatusOverlay({
+   offsetY?: number
+ }) {
+   const theme = useTheme()
+-  const isPhonePhase = mode === 'phone'
++  const [now, setNow] = useState(() => new Date())
++
++  useEffect(() => {
++    const timer = window.setInterval(() => setNow(new Date()), 1000)
++    return () => window.clearInterval(timer)
++  }, [])
++
++  const time = new Intl.DateTimeFormat('fr-FR', {
++    hour: '2-digit',
++    minute: '2-digit',
++    hour12: false
++  }).format(now)
++
++  const dateValue = new Intl.DateTimeFormat('fr-FR', {
++    weekday: 'long',
++    day: 'numeric',
++    month: 'long'
++  }).format(now)
++
++  const date = dateValue.charAt(0).toUpperCase() + dateValue.slice(1)
+ 
+   return (
+     <Box
+       role="status"
+       aria-live="polite"
+       aria-hidden={!show}
++      data-mode={mode}
+       sx={{
+         position: 'absolute',
+         inset: 0,
+         pointerEvents: 'none',
+-        display: show ? 'block' : 'none',
++        display: show ? 'flex' : 'none',
++        alignItems: 'center',
++        justifyContent: 'center',
+         zIndex: 9
+       }}
+     >
+       <Box
++        className="espace-wait-screen"
+         sx={{
+-          position: 'absolute',
+-          left: `calc(50% + ${offsetX}px)`,
+-          top: `calc(50% + ${offsetY}px)`,
+-          transform: 'translate(-50%, -50%)',
+-          display: 'grid',
+-          placeItems: 'center'
++          transform: `translate(
++            calc(${offsetX}px + var(--wait-offset-x, 0px)),
++            calc(${offsetY}px + var(--wait-offset-y, 0px))
++          )`,
++          textAlign: 'center',
++          userSelect: 'none',
++          fontFamily: 'var(--espace-font-family, "Roboto", sans-serif)'
+         }}
+       >
+-        <CropPortraitOutlinedIcon
++        <Typography
++          component="div"
++          sx={{
++            fontSize: 'var(--wait-clock-size, clamp(5rem, 14vw, 10rem))',
++            fontWeight: 'var(--wait-clock-weight, 300)',
++            lineHeight: 'var(--wait-clock-line-height, 0.95)',
++            letterSpacing: 'var(--wait-clock-letter-spacing, -0.035em)',
++            color: 'var(--espace-text-primary, #f5f5f5)',
++            fontVariantNumeric: 'tabular-nums'
++          }}
++        >
++          {time}
++        </Typography>
++
++        <Typography
++          component="div"
+           sx={{
+-            fontSize: 84,
+-            color: theme.palette.text.primary,
+-            opacity: isPhonePhase ? 'var(--ui-breathe-opacity, 1)' : 0.55
++            mt: 'var(--wait-date-gap, 16px)',
++            fontSize: 'var(--wait-date-size, clamp(1.5rem, 3.5vw, 2.5rem))',
++            fontWeight: 'var(--wait-date-weight, 300)',
++            letterSpacing: 'var(--wait-date-letter-spacing, 0.02em)',
++            color: 'var(--espace-text-secondary, #9e9e9e)'
+           }}
+-        />
++        >
++          {date}
++        </Typography>
+       </Box>
+     </Box>
+   )
+diff --git a/src/renderer/src/components/pages/telemetry/dashboards/dash4/Dash4.tsx b/src/renderer/src/components/pages/telemetry/dashboards/dash4/Dash4.tsx
+index fb224da..ee6eae1 100644
+--- a/src/renderer/src/components/pages/telemetry/dashboards/dash4/Dash4.tsx
++++ b/src/renderer/src/components/pages/telemetry/dashboards/dash4/Dash4.tsx
+@@ -1,16 +1,309 @@
+-import { Box } from '@mui/material'
+-import { useStatusStore } from '@store/store'
+-import { useEffect } from 'react'
++import { Box, Typography } from '@mui/material'
++import { type ReactNode, useEffect, useState } from 'react'
++import { DashShell } from '../../components/DashShell'
++import { useVehicleTelemetry } from '../../hooks/useVehicleTelemetry'
++
++const BASE_W = 1280
++const BASE_H = 720
++
++const stageScale = (w: number, h: number): number => {
++  const scale = Math.min(w / BASE_W, h / BASE_H)
++  return Number.isFinite(scale) && scale > 0 ? scale : 1
++}
++
++const stageOffset = (
++  w: number,
++  h: number,
++  scale: number
++): { left: number; top: number } => ({
++  left: Math.round((w - BASE_W * scale) / 2),
++  top: Math.round((h - BASE_H * scale) / 2)
++})
++
++const isNumber = (value: unknown): value is number =>
++  typeof value === 'number' && Number.isFinite(value)
++
++const numberValue = (value: unknown, decimals = 0): string =>
++  isNumber(value) ? value.toFixed(decimals) : '--'
++
++type MetricProps = {
++  label: string
++  value: string
++  unit?: string
++  alert?: boolean
++}
++
++function Metric({ label, value, unit, alert = false }: MetricProps) {
++  return (
++    <Box className="espace-metric">
++      <Typography className="espace-metric-label">
++        {label}
++      </Typography>
++
++      <Box className="espace-metric-reading">
++        <Typography
++          component="span"
++          className={`espace-metric-value${alert ? ' espace-alert' : ''}`}
++        >
++          {value}
++        </Typography>
++
++        {unit && value !== '--' && (
++          <Typography
++            component="span"
++            className="espace-metric-unit"
++          >
++            {unit}
++          </Typography>
++        )}
++      </Box>
++    </Box>
++  )
++}
++
++function Section({
++  title,
++  className,
++  children
++}: {
++  title: string
++  className?: string
++  children: ReactNode
++}) {
++  return (
++    <Box className={`espace-section ${className ?? ''}`}>
++      <Box className="espace-section-head">
++        <Typography className="espace-section-title">
++          {title}
++        </Typography>
++        <Box className="espace-section-rule" />
++      </Box>
++
++      <Box className="espace-section-content">
++        {children}
++      </Box>
++    </Box>
++  )
++}
+ 
+-/**
+- * Cluster stream only
+- */
+ export function Dash4() {
+-  const setClusterDashActive = useStatusStore((s) => s.setClusterDashActive)
++  const { telemetry } = useVehicleTelemetry()
++  const [now, setNow] = useState(() => new Date())
++
++  const [viewport, setViewport] = useState(() => {
++    const scale = stageScale(window.innerWidth, window.innerHeight)
++    return {
++      scale,
++      ...stageOffset(window.innerWidth, window.innerHeight, scale)
++    }
++  })
++
+   useEffect(() => {
+-    setClusterDashActive(true)
+-    return () => setClusterDashActive(false)
+-  }, [setClusterDashActive])
++    const timer = window.setInterval(() => setNow(new Date()), 1000)
++    return () => window.clearInterval(timer)
++  }, [])
++
++  useEffect(() => {
++    let settle: ReturnType<typeof setTimeout> | null = null
++
++    const onResize = () => {
++      if (settle !== null) clearTimeout(settle)
++
++      settle = setTimeout(() => {
++        const scale = stageScale(window.innerWidth, window.innerHeight)
++
++        setViewport({
++          scale,
++          ...stageOffset(window.innerWidth, window.innerHeight, scale)
++        })
++
++        settle = null
++      }, 150)
++    }
++
++    window.addEventListener('resize', onResize)
++
++    return () => {
++      if (settle !== null) clearTimeout(settle)
++      window.removeEventListener('resize', onResize)
++    }
++  }, [])
++
++  const ambientC = telemetry?.ambientC
++  const coolantC = telemetry?.coolantC
++  const oilC = telemetry?.oilC
++  const iatC = telemetry?.iatC
++  const boostKpa = telemetry?.boostKpa
++  const batteryV = telemetry?.batteryV
++  const fuelPct = telemetry?.fuelPct
++  const rangeKm = telemetry?.rangeKm
++  const consumption = telemetry?.consumptionLPer100Km
++  const consumptionAvg = telemetry?.consumptionAvgLPer100Km
++
++  const dpfLoadPct = telemetry?.dpfLoadPct
++  const dpfRegenActive = telemetry?.dpfRegenActive
++  const dpfDifferentialKpa = telemetry?.dpfDifferentialKpa
++  const dpfTempC = telemetry?.dpfTempC
++
++  const boostBar = isNumber(boostKpa)
++    ? (boostKpa / 100).toFixed(2)
++    : '--'
++
++  const regen =
++    typeof dpfRegenActive === 'boolean'
++      ? dpfRegenActive
++        ? 'OUI'
++        : 'NON'
++      : '--'
++
++  const time = new Intl.DateTimeFormat('fr-FR', {
++    hour: '2-digit',
++    minute: '2-digit',
++    hour12: false
++  }).format(now)
++
++  return (
++    <DashShell className="espace-dash4-shell">
++      <Box
++        sx={{
++          width: '100%',
++          height: '100%',
++          position: 'relative',
++          overflow: 'hidden'
++        }}
++      >
++        <Box
++          className="espace-dash4-stage"
++          sx={{
++            position: 'absolute',
++            left: viewport.left,
++            top: viewport.top,
++            width: BASE_W,
++            height: BASE_H,
++            transform: `scale(${viewport.scale})`,
++            transformOrigin: 'top left'
++          }}
++        >
++          <Box className="espace-dash4-header">
++            <Box className="espace-outside">
++              <Typography className="espace-outside-label">
++                EXTÉRIEUR
++              </Typography>
++
++              <Box className="espace-outside-reading">
++                <Typography
++                  component="span"
++                  className="espace-outside-value"
++                >
++                  {numberValue(ambientC, 1)}
++                </Typography>
++
++                {isNumber(ambientC) && (
++                  <Typography
++                    component="span"
++                    className="espace-outside-unit"
++                  >
++                    °C
++                  </Typography>
++                )}
++              </Box>
++            </Box>
++
++            <Typography className="espace-dash-clock">
++              {time}
++            </Typography>
++          </Box>
++
++          <Box className="espace-dash-grid">
++            <Section title="MOTEUR" className="espace-engine">
++              <Metric
++                label="Eau"
++                value={numberValue(coolantC)}
++                unit="°C"
++              />
++              <Metric
++                label="Huile"
++                value={numberValue(oilC)}
++                unit="°C"
++              />
++              <Metric
++                label="Admission"
++                value={numberValue(iatC)}
++                unit="°C"
++              />
++            </Section>
++
++            <Section title="FAP" className="espace-fap">
++              <Metric
++                label="Charge"
++                value={numberValue(dpfLoadPct)}
++                unit="%"
++              />
++              <Metric
++                label="Régénération"
++                value={regen}
++                alert={dpfRegenActive === true}
++              />
++              <Metric
++                label="Pression diff."
++                value={numberValue(dpfDifferentialKpa, 1)}
++                unit="kPa"
++              />
++              <Metric
++                label="Temp. FAP"
++                value={numberValue(dpfTempC)}
++                unit="°C"
++              />
++            </Section>
++
++            <Section title="TURBO" className="espace-turbo">
++              <Metric
++                label="Pression"
++                value={boostBar}
++                unit="bar"
++              />
++            </Section>
++
++            <Section title="ÉLECTRIQUE" className="espace-electric">
++              <Metric
++                label="Batterie"
++                value={numberValue(batteryV, 1)}
++                unit="V"
++              />
++            </Section>
++
++            <Section title="CARBURANT" className="espace-fuel">
++              <Box className="espace-fuel-grid">
++                <Box>
++                  <Metric
++                    label="Niveau"
++                    value={numberValue(fuelPct)}
++                    unit="%"
++                  />
++                  <Metric
++                    label="Conso instant."
++                    value={numberValue(consumption, 1)}
++                    unit="L/100"
++                  />
++                </Box>
+ 
+-  return <Box sx={{ width: '100%', height: '100%' }} />
++                <Box>
++                  <Metric
++                    label="Autonomie"
++                    value={numberValue(rangeKm)}
++                    unit="km"
++                  />
++                  <Metric
++                    label="Moyenne"
++                    value={numberValue(consumptionAvg, 1)}
++                    unit="L/100"
++                  />
++                </Box>
++              </Box>
++            </Section>
++          </Box>
++        </Box>
++      </Box>
++    </DashShell>
++  )
+ }
+diff --git a/src/renderer/src/env.d.ts b/src/renderer/src/env.d.ts
+index 5290fbc..2a51da0 100644
+--- a/src/renderer/src/env.d.ts
++++ b/src/renderer/src/env.d.ts
+@@ -185,6 +185,7 @@ declare global {
+       quitApp(): Promise<void>
+       restartApp(): Promise<void>
+       getVersion(): Promise<string>
++      readCustomCss(): Promise<string>
+       listDisplayModes(): Promise<string[]>
+       listWifiChannels(): Promise<number[]>
+       listWifiCountryCodes(): Promise<string[]>
+diff --git a/src/renderer/src/main.tsx b/src/renderer/src/main.tsx
+index 3a966f8..fb27889 100644
+--- a/src/renderer/src/main.tsx
++++ b/src/renderer/src/main.tsx
+@@ -21,6 +21,24 @@ import { AppContext, type AppContextProps } from './context'
+ import './i18n'
+ import { getWindowRole } from './utils/windowRole'
+ 
++async function loadCustomCss(): Promise<void> {
++  try {
++    const css = await window.app.readCustomCss()
++    if (!css.trim()) return
++
++    let style = document.getElementById('espace-custom-ui') as HTMLStyleElement | null
++    if (!style) {
++      style = document.createElement('style')
++      style.id = 'espace-custom-ui'
++      document.head.appendChild(style)
++    }
++
++    style.textContent = css
++  } catch (error) {
++    console.warn('[custom-ui] unable to load custom CSS:', error)
++  }
++}
++
+ const role = getWindowRole()
+ if (role === 'main') {
+   initUiBreatheClock()
+@@ -94,4 +112,8 @@ export const Root = () => {
+   )
+ }
+ 
+-ReactDOM.createRoot(document.getElementById('root') as HTMLElement).render(<Root />)
++const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement)
++
++void loadCustomCss().finally(() => {
++  root.render(<Root />)
++})
