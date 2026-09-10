@@ -14,7 +14,9 @@ Résultat obtenu :
 - style Dash4 et écran d'attente externalisé dans un CSS modifiable sans recompilation ;
 - police Inter installée sur le Raspberry et utilisée par le thème Espace ;
 - build applicatif et build Linux ARM64 réussis ;
-- l'AppImage personnalisée a été lancée et testée sur le banc.
+- l'AppImage personnalisée a été lancée et testée sur le banc ;
+- patch source exact archivé dans le dépôt ;
+- SHA256 du patch et de l'AppImage enregistrés.
 
 Ce checkpoint ne valide pas encore CarPlay réel, MFi, caméra physique, audio, micro, Siri ni CAN véhicule réel.
 
@@ -222,7 +224,7 @@ Fichier externe :
 ~/.config/LIVI/custom/espace-ui.css
 ```
 
-Les fichiers `.wrap` générés sous `native/livi-compositor/subprojects/` sont des artefacts de build et ne font pas partie de la modification à archiver.
+Les fichiers `.wrap` générés sous `native/livi-compositor/subprojects/` sont des artefacts de build et ne font pas partie de la modification archivée. Le changement local `scripts/tools/pnpm-lock.yaml` n'est pas inclus dans le patch Espace.
 
 ## Validations réalisées
 
@@ -252,17 +254,42 @@ preload  : OK
 
 L'avertissement Vite concernant le futur `configLoader: native` est non bloquant et n'a pas empêché le build.
 
-L'AppImage de test est :
+## Archive reproductible
+
+Patch exact exporté depuis `/home/pi/LIVI-dev` :
+
+```text
+patches/livi/v8.3.0-espace-ui-telemetry.patch
+```
+
+Caractéristiques validées au moment de l'export :
+
+```text
+528 lignes
+SHA256 = ed57a6eece794cfb215c32608a9e823e61d4891f2411e4ae2de72971517d7e9e
+```
+
+AppImage testée sur banc :
 
 ```text
 /home/pi/LIVI-dev/dist/LIVI-8.3.0-linux-arm64.AppImage
+308M
+SHA256 = 81274c13692e8df1b19ba22fc01b568c6a158a5a6603955937b851b556c30a9c
 ```
 
-La version stable d'origine doit rester conservée tant que toute l'intégration n'est pas terminée :
+Les empreintes sont également stockées dans :
+
+```text
+artifacts/livi-v8.3.0-espace-ui-telemetry-2026-09-10.sha256
+```
+
+Le binaire AppImage n'est pas stocké dans l'historique Git. La version stable d'origine reste conservée sur le Raspberry :
 
 ```text
 /home/pi/LIVI/LIVI.AppImage
 ```
+
+L'ancien patch `patches/livi/v8.3.0-home-clock.patch` a été supprimé : il correspondait à l'approche abandonnée qui modifiait `Home.tsx`.
 
 ## Autostart pendant la phase de test
 
@@ -303,11 +330,9 @@ LIVI v8.3.0 est actuellement structuré autour de dash1..dash4. On conserve donc
 
 Ce point est volontairement reporté.
 
-## Restant avant archivage final de la build
+## Reste à valider matériellement
 
-- exporter mécaniquement le `git diff` exact du checkout `/home/pi/LIVI-dev` contre v8.3.0 ;
-- remplacer l'ancien patch `patches/livi/v8.3.0-home-clock.patch`, désormais obsolète ;
-- vérifier l'application du nouveau patch sur un worktree propre v8.3.0 ;
-- enregistrer taille et SHA256 de l'AppImage personnalisée finale ;
-- valider avec MFi+iPhone que l'overlay heure/date disparaît bien à l'apparition de CarPlay.
-
+- appliquer à nouveau le patch sur un checkout propre de LIVI v8.3.0 lors d'un test de reconstruction reproductible ;
+- valider avec MFi + iPhone que l'overlay heure/date disparaît bien à l'apparition de CarPlay ;
+- valider l'écran HDMI physique final ;
+- poursuivre ensuite HID, audio, caméra, navigation autonome et CAN véhicule réel.
