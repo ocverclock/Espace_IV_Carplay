@@ -81,8 +81,10 @@ GPIO21 n’est pas considéré comme une alimentation directe de la pin VCC dans
 - [x] Trixie 64 bits confirmé ;
 - [x] LIVI s’installe ;
 - [x] LIVI démarre ;
-- [ ] affichage HDMI stable ;
+- [ ] affichage HDMI physique stable ;
 - [x] démarrage automatique ;
+- [x] affichage distant Wayland/VNC validé ;
+- [x] LIVI configuré en plein écran dans ses paramètres ;
 - [ ] navigation clavier fonctionne ;
 - [ ] événements HID externes fonctionnent.
 
@@ -153,14 +155,79 @@ L'installateur ajoute les dépendances (dont pymobiledevice3 dans cette version)
 
 Pour une future mise à jour, vérifier ensemble la version de l'application et de l'installateur. Le mode desktop est conservé pour le banc ; l'absence temporaire d'écran n'a pas entraîné de conversion au mode kiosk/headless.
 
-## Checkpoint actif — 2026-09-10 : LIVI installé et démarré
+## Accès bureau distant WayVNC — validé le 2026-09-10
+
+Le Pi fonctionne en session Wayland avec `labwc` sur `wayland-0`. WayVNC est utilisé uniquement pour le travail et le diagnostic à distance.
+
+### Autostart WayVNC
+
+Le lancement automatique est ajouté dans :
+
+```text
+~/.config/labwc/autostart
+```
+
+avec :
+
+```bash
+wayvnc 0.0.0.0 5900 &
+```
+
+Après reboot, la présence des deux processus est vérifiée avec :
+
+```bash
+pgrep -af 'labwc|wayvnc'
+```
+
+État validé après redémarrage :
+
+```text
+/usr/bin/labwc -m
+wayvnc 0.0.0.0 5900
+```
+
+Il n’existe pas de `wayvnc.service` systemd utilisateur dans cette configuration ; WayVNC est volontairement lancé par l’autostart de `labwc`, après disponibilité de la session Wayland.
+
+### Connexion VNC via tunnel SSH
+
+Depuis le PC client :
+
+```bash
+ssh -N -L 15900:127.0.0.1:5900 pi@raspberry-carplay.local
+```
+
+Laisser ce terminal ouvert pendant la session VNC.
+
+Le client VNC se connecte ensuite à :
+
+```text
+127.0.0.1:15900
+```
+
+ou :
+
+```text
+localhost:15900
+```
+
+Cette méthode évite d’utiliser directement le port VNC du Pi depuis le PC : le trafic VNC passe dans le tunnel SSH.
+
+### Affichage LIVI
+
+Après accès VNC, LIVI a été réglé dans ses propres paramètres pour occuper tout l’écran. Après reboot, LIVI démarre automatiquement et reprend le plein écran. Ce point est considéré comme validé côté session graphique distante ; l’écran HDMI physique reste à valider quand il sera disponible.
+
+## Checkpoint actif — 2026-09-10 : LIVI + accès distant opérationnels
 
 - Banc Raspberry Pi 4 sur microSD, image avec bureau préparée avec Raspberry Pi Imager 1.7.2.
-- SSH fonctionnel : `ssh pi@raspberry-carplay.local`. Aucun écran physique disponible pour le moment.
+- SSH fonctionnel : `ssh pi@raspberry-carplay.local`.
 - OS mesuré : Debian GNU/Linux 13 (trixie), DEBIAN_VERSION_FULL=13.5 ; `uname -m = aarch64`.
 - LIVI v8.3.0 installé dans `/home/pi/LIVI/LIVI.AppImage` (environ 309 Mio).
 - Installateur desktop et AppImage épinglés à v8.3.0 après incompatibilité entre installateur main et release (marqueur sudoers `__PYTHON__` non remplacé). Validation sudoers réussie avec l'installateur correspondant.
 - Après redémarrage : `graphical.target`, display-manager actif, session Wayland active ; lancement automatique par `/home/pi/.config/autostart/LIVI.desktop`.
+- `labwc` démarre correctement sur la session Wayland.
+- WayVNC est installé, démarre automatiquement via `~/.config/labwc/autostart` et reste présent après reboot.
+- Accès VNC validé via tunnel SSH local `15900 -> 127.0.0.1:5900`, client VNC sur `127.0.0.1:15900`.
+- LIVI a été réglé depuis son interface pour démarrer/occuper tout l’écran ; comportement validé après reboot via VNC.
 - Logs : `/home/pi/.xsession-errors`. Le dossier `~/.config/LIVI/log/` était vide. `journalctl --user` ne retournait rien ; `sudo journalctl -b _UID=1000` permettait la lecture.
 - Initialisation graphique confirmée : OpenGL ES 3.1, Mesa 26.2.1, pilote v3d / Broadcom V3D 4.2.14.0. Compositeur LIVI sur wayland-1 au-dessus du bureau wayland-0, sortie logique main 1280×752, fenêtre LIVI affectée à main.
 - GStreamer 1.28.4 embarqué détecte H.264/H.265 matériels et logiciels ; aucun flux réel encore validé.
@@ -169,8 +236,8 @@ Pour une future mise à jour, vérifier ensemble la version de l'application et 
 - Sans-fil désactivé (aaWireless=false, cpWireless=false), Bluetooth et point d'accès inactifs.
 - Avertissements VA-API/Vulkan, RTKit et portail Wayland observés : pas de blocage du démarrage démontré ; ne pas modifier au hasard la pile graphique.
 - Connexion du RP2040 au Pi explicitement reportée par David. Le prototype boutons/mute/molette du 8 septembre reste acquis ; USB HID pas encore implémenté.
-- Prochaine étape proposée : préparer un accès au bureau à distance sans écran pour voir/configurer LIVI, en vérifiant d'abord la compatibilité Wayland et l'absence de sortie physique. Aucun accès graphique distant n'a encore été installé ou validé.
-- Restent à valider : image réelle, navigation, vidéo projetée, audio/micro/Siri, MFi et CarPlay, puis HID. Aucun de ces résultats ne doit être déduit de la seule présence des processus.
+- Prochaine étape : poursuivre les essais d’interface/navigation sur LIVI depuis VNC, puis préparer la validation MFi + iPhone + CarPlay filaire.
+- Restent à valider : écran HDMI physique, navigation clavier/HID, vidéo projetée, audio/micro/Siri, MFi et CarPlay. Aucun de ces résultats ne doit être déduit de la seule présence des processus.
 
 ## Critère de sortie de phase
 
