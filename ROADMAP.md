@@ -48,9 +48,22 @@
 - [x] valider démarrage automatique
 - [x] valider accès graphique distant WayVNC via tunnel SSH
 - [x] configurer LIVI en plein écran
-- [ ] valider affichage HDMI physique
+- [x] remplacer l'overlay d'attente natif par heure + date dans `Projection.tsx`
+- [x] conserver `Home.tsx` d'origine ; abandonner l'ancienne piste Home personnalisée
+- [x] valider la chaîne `telemetry-sim -> telemetry:push -> LIVI -> dashboards`
+- [x] réaffecter Dash4 à la télémétrie Espace IV
+- [x] valider Dash4 avec données simulées moteur / FAP / turbo / électrique / carburant
+- [x] utiliser une scène 1280×720 mise à l'échelle pour un rendu exploitable sur l'écran
+- [x] externaliser le style de l'écran d'attente et de Dash4 dans `~/.config/LIVI/custom/espace-ui.css`
+- [x] installer et valider la police Inter pour l'interface personnalisée
+- [x] valider `git diff --check`, typecheck, build applicatif et build ARM64
+- [ ] exporter et valider le patch LIVI exact contre v8.3.0
+- [ ] enregistrer taille + SHA256 de l'AppImage personnalisée finale
+- [ ] valider avec CarPlay réel que l'overlay heure/date disparaît à la projection
+- [ ] valider affichage HDMI physique stable
 - [ ] valider commandes clavier/HID hors CarPlay
-- [ ] compiler et valider Home personnalisée heure/date
+
+Checkpoint : `docs/LIVI_UI_TELEMETRY_CHECKPOINT_2026-09-10.md`.
 
 ### M2.2 — MFi
 - [ ] assembler prototype `MFI343S00177-L`
@@ -149,10 +162,11 @@ Contenu :
 - [ ] écoute passive
 - [ ] logs
 - [ ] corrélation trames/événements
-- [ ] télémétrie
+- [x] valider le chemin logiciel télémétrie LIVI avec données simulées
+- [ ] brancher le futur décodeur CAN réel sur le même contrat télémétrie
 - [ ] requêtes diagnostic uniquement si nécessaire
 
-## M9 — Intégration véhicule
+## M9 — Intégration véhicule / mise en service
 - [ ] faisceau réversible
 - [ ] écran final
 - [ ] caméra
@@ -162,3 +176,6 @@ Contenu :
 - [ ] tests démarrage/arrêt
 - [ ] tests après déconnexion/reconnexion batterie
 - [ ] tests longs trajets
+- [ ] configurer plusieurs réseaux Wi-Fi via NetworkManager avec priorités d'autoconnexion
+- [ ] utiliser de préférence un SSID dédié au Raspberry CarPlay avec VLAN limité
+- [ ] vérifier la protection root-only des profils Wi-Fi et documenter la limite en cas d'accès physique à la microSD
