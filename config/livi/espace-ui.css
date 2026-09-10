@@ -1,0 +1,203 @@
+:root {
+  --espace-font-family: "Inter", "Roboto", sans-serif;
+
+  --espace-background: #000000;
+  --espace-primary: #f4f5f6;
+  --espace-secondary: #a4a9b0;
+  --espace-muted: #6f747b;
+  --espace-rule: rgba(255, 255, 255, 0.10);
+  --espace-alert: #ffb84d;
+
+  /* Écran d'attente */
+  --wait-clock-size: clamp(5.2rem, 12vw, 8.5rem);
+  --wait-clock-weight: 300;
+  --wait-clock-letter-spacing: -0.045em;
+  --wait-clock-line-height: 0.95;
+  --wait-date-size: clamp(1.35rem, 3vw, 2.1rem);
+  --wait-date-weight: 300;
+  --wait-date-gap: 18px;
+  --wait-date-letter-spacing: 0.015em;
+  --wait-offset-x: 0px;
+  --wait-offset-y: 0px;
+}
+
+/* ---------- Écran d'attente ---------- */
+
+.espace-wait-screen .MuiTypography-root {
+  font-family: var(--espace-font-family) !important;
+}
+
+
+/* ---------- Dash4 Espace IV ---------- */
+
+.espace-dash4-stage {
+  box-sizing: border-box;
+  padding: 42px 62px 38px 62px;
+  background: var(--espace-background);
+  color: var(--espace-primary);
+  font-family: var(--espace-font-family);
+  -webkit-font-smoothing: antialiased;
+}
+
+.espace-dash4-stage .MuiTypography-root {
+  font-family: var(--espace-font-family) !important;
+}
+
+.espace-dash4-header {
+  height: 58px;
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 36px;
+}
+
+.espace-outside {
+  display: flex;
+  align-items: baseline;
+  gap: 18px;
+}
+
+.espace-outside-label {
+  font-size: 17px !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.15em !important;
+  color: var(--espace-secondary);
+}
+
+.espace-outside-reading {
+  display: flex;
+  align-items: baseline;
+}
+
+.espace-outside-value {
+  font-size: 36px !important;
+  line-height: 1 !important;
+  font-weight: 400 !important;
+  letter-spacing: -0.025em !important;
+  color: var(--espace-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.espace-outside-unit {
+  margin-left: 7px !important;
+  font-size: 21px !important;
+  font-weight: 300 !important;
+  color: var(--espace-secondary);
+}
+
+.espace-dash-clock {
+  font-size: 34px !important;
+  line-height: 1 !important;
+  font-weight: 300 !important;
+  letter-spacing: -0.025em !important;
+  color: var(--espace-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.espace-dash-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-areas:
+    "engine fap"
+    "turbo electric"
+    "fuel fuel";
+  column-gap: 112px;
+  row-gap: 32px;
+}
+
+.espace-engine {
+  grid-area: engine;
+}
+
+.espace-fap {
+  grid-area: fap;
+}
+
+.espace-turbo {
+  grid-area: turbo;
+}
+
+.espace-electric {
+  grid-area: electric;
+}
+
+.espace-fuel {
+  grid-area: fuel;
+}
+
+.espace-section-head {
+  height: 31px;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 7px;
+}
+
+.espace-section-title {
+  flex: 0 0 auto;
+  font-size: 17px !important;
+  line-height: 1 !important;
+  font-weight: 500 !important;
+  letter-spacing: 0.16em !important;
+  color: var(--espace-secondary);
+}
+
+.espace-section-rule {
+  height: 1px;
+  flex: 1;
+  background: var(--espace-rule);
+}
+
+.espace-section-content {
+  width: 100%;
+}
+
+.espace-metric {
+  min-height: 43px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  column-gap: 24px;
+}
+
+.espace-metric-label {
+  font-size: 21px !important;
+  line-height: 1.15 !important;
+  font-weight: 300 !important;
+  color: var(--espace-secondary);
+}
+
+.espace-metric-reading {
+  display: flex;
+  align-items: baseline;
+  justify-content: flex-end;
+  min-width: 145px;
+  white-space: nowrap;
+}
+
+.espace-metric-value {
+  font-size: 30px !important;
+  line-height: 1 !important;
+  font-weight: 450 !important;
+  letter-spacing: -0.02em !important;
+  color: var(--espace-primary);
+  font-variant-numeric: tabular-nums;
+}
+
+.espace-metric-unit {
+  margin-left: 7px !important;
+  font-size: 17px !important;
+  line-height: 1 !important;
+  font-weight: 300 !important;
+  color: var(--espace-muted);
+}
+
+.espace-alert {
+  color: var(--espace-alert) !important;
+}
+
+.espace-fuel-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  column-gap: 112px;
+}
