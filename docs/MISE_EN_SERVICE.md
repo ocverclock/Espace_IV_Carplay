@@ -57,16 +57,36 @@ Avant montage définitif :
 - sauvegarder les valeurs finales de mixage dans la configuration LIVI ;
 - vérifier qu'elles persistent après plusieurs redémarrages et une coupure complète.
 
-## 4. Accès de maintenance
+## 4. Accès de maintenance et alimentation
 
 Avant fermeture de l'installation :
 
 - confirmer SSH ;
 - confirmer WayVNC via tunnel SSH si cette méthode est conservée ;
 - vérifier qu'un accès de maintenance reste possible lorsqu'un réseau Wi-Fi connu est disponible ;
+- valider un mode maintenance ACC OFF permettant de maintenir ou démarrer le Pi volontairement ;
+- valider la sortie du mode maintenance suivie d'un `systemctl poweroff` propre ;
+- vérifier que la coupure matérielle du 5 V intervient seulement après arrêt Linux ou timeout de sécurité ;
+- conserver un moyen local simple de maintenance même si le réveil distant est retenu ;
+- ne pas supposer qu'un Pi totalement hors tension peut être réveillé par SSH : le réveil distant exige un contrôleur de veille séparé ;
+- mesurer la consommation de toute logique toujours alimentée avant validation ;
 - documenter une procédure de récupération locale en cas de perte réseau ou de configuration incorrecte.
 
-## 5. Validation finale avant fermeture
+Architecture détaillée : `docs/POWER.md`.
+
+## 5. Budget I/O / USB
+
+Avant fermeture :
+
+- vérifier la matrice réelle des ports selon `docs/IO_PORTS.md` ;
+- attribuer chaque périphérique à un port/interface physique ;
+- réserver les interfaces CAN au SPI plutôt qu'à un pont USB par défaut ;
+- privilégier une interface audio USB combinant sortie ligne + entrée micro ;
+- ne retenir un SSD USB que si son besoin réel justifie un port supplémentaire ;
+- si un hub devient nécessaire, valider alimentation, stabilité au boot et partage de bande passante sur banc ;
+- documenter le routage physique des câbles avant fabrication du faisceau/boîtier final.
+
+## 6. Validation finale avant fermeture
 
 Ne fermer définitivement l'intégration qu'après validation de :
 
@@ -78,4 +98,7 @@ Ne fermer définitivement l'intégration qu'après validation de :
 - commandes physiques ;
 - audio / mixage / micro ;
 - caméra de recul ;
-- arrêt propre et redémarrage après coupure complète.
+- arrêt propre et redémarrage après coupure complète ;
+- mode maintenance ;
+- budget USB/I/O final ;
+- accès de récupération documenté.
