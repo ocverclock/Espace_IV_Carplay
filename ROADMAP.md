@@ -42,12 +42,15 @@
 ## M2 — LIVI / CarPlay sur établi
 
 ### M2.1 — plateforme
-- [ ] installer Raspberry Pi OS / Debian 13 Trixie 64 bits
-- [ ] vérifier arm64
-- [ ] installer LIVI
-- [ ] valider affichage HDMI
-- [ ] valider démarrage automatique
+- [x] installer Raspberry Pi OS / Debian 13 Trixie 64 bits
+- [x] vérifier arm64
+- [x] installer LIVI v8.3.0
+- [x] valider démarrage automatique
+- [x] valider accès graphique distant WayVNC via tunnel SSH
+- [x] configurer LIVI en plein écran
+- [ ] valider affichage HDMI physique
 - [ ] valider commandes clavier/HID hors CarPlay
+- [ ] compiler et valider Home personnalisée heure/date
 
 ### M2.2 — MFi
 - [ ] assembler prototype `MFI343S00177-L`
@@ -73,32 +76,54 @@
 
 > Le MFi est un prérequis à la validation réelle de CarPlay natif.
 
-## M3 — Écran et façade
+## M3 — GPS / navigation autonome
+
+Objectif : conserver une navigation routière de secours sans iPhone / CarPlay.
+
+- [ ] choisir module GNSS NMEA-0183 ; cible de travail u-blox NEO-M9N ou équivalent
+- [ ] valider réception GNSS dans le véhicule
+- [ ] valider heure/date/fuseau après coupure totale
+- [ ] tester Navit comme navigateur hors ligne principal de secours
+- [ ] tester Organic Maps Linux comme alternative
+- [ ] choisir stratégie de distribution GNSS entre LIVI et navigation de secours
+- [ ] télécharger cartes hors ligne utiles
+- [ ] valider calcul/recalcul d'itinéraire sans Internet
+- [ ] valider bascule navigation principale CarPlay / navigation secours
+- [ ] valider commandes physiques sur écran non tactile
+
+Document : `docs/GPS_NAVIGATION.md`.
+
+## M4 — Écran et façade
 - [ ] choisir écran 7"
 - [ ] mesurer logement complet
 - [ ] CAO façade
 - [ ] prototype imprimé
 - [ ] validation visibilité soleil/nuit
 
-## M4 — Caméra de recul
+## M5 — Caméra de recul
 - [ ] choisir caméra
 - [ ] choisir capture
 - [ ] mesurer latence
 - [ ] récupérer signal reverse
 - [ ] bascule automatique < 1 s si possible
-- [ ] restauration automatique CarPlay
+- [ ] restauration automatique écran précédent
 - [ ] vérifier fonctionnement sans iPhone
 
-## M5 — Audio / alimentation
-- [ ] AUX Renault
+## M6 — Audio / alimentation
+- [ ] valider AUX Renault réellement accessible
+- [ ] valider état AUX après reboot / coupure batterie
+- [ ] prévoir commande automatique AUX si nécessaire
+- [ ] définir fallback si AUX OEM inutilisable
 - [ ] DAC
+- [ ] lecture musique locale Raspberry
 - [ ] micro
 - [ ] ACC
 - [ ] buck automobile
 - [ ] shutdown propre
+- [ ] redémarrage autonome après coupure totale
 - [ ] consommation véhicule arrêté
 
-## M6 — PCB V1
+## M7 — PCB V1
 
 **Gate avant lancement PCB :**
 - [ ] commandes Renault mesurées
@@ -119,7 +144,7 @@ Contenu :
 - [ ] connecteurs
 - [ ] points de test
 
-## M7 — CAN Renault
+## M8 — CAN Renault
 - [ ] topologie bus
 - [ ] écoute passive
 - [ ] logs
@@ -127,7 +152,7 @@ Contenu :
 - [ ] télémétrie
 - [ ] requêtes diagnostic uniquement si nécessaire
 
-## M8 — Intégration véhicule
+## M9 — Intégration véhicule
 - [ ] faisceau réversible
 - [ ] écran final
 - [ ] caméra
@@ -135,4 +160,5 @@ Contenu :
 - [ ] audio
 - [ ] alimentation
 - [ ] tests démarrage/arrêt
+- [ ] tests après déconnexion/reconnexion batterie
 - [ ] tests longs trajets
