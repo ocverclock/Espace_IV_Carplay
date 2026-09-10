@@ -57,8 +57,8 @@
 - [x] externaliser le style de l'écran d'attente et de Dash4 dans `~/.config/LIVI/custom/espace-ui.css`
 - [x] installer et valider la police Inter pour l'interface personnalisée
 - [x] valider `git diff --check`, typecheck, build applicatif et build ARM64
-- [ ] exporter et valider le patch LIVI exact contre v8.3.0
-- [ ] enregistrer taille + SHA256 de l'AppImage personnalisée finale
+- [x] exporter et archiver le patch LIVI exact contre v8.3.0
+- [x] enregistrer taille + SHA256 de l'AppImage personnalisée et du patch
 - [ ] valider avec CarPlay réel que l'overlay heure/date disparaît à la projection
 - [ ] valider affichage HDMI physique stable
 - [ ] valider commandes clavier/HID hors CarPlay
