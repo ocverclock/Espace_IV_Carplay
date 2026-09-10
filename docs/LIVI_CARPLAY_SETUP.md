@@ -48,7 +48,7 @@ Le câblage électrique de référence est documenté dans :
 
 Décisions associées : `D012`, `D014`, `D015`.
 
-## Configuration I²C LIVI
+## Configuration I²C LIVI cible — non activée sur le banc sans MFi
 
 LIVI utilise actuellement :
 
@@ -78,11 +78,11 @@ GPIO21 n’est pas considéré comme une alimentation directe de la pin VCC dans
 
 ### Étape 1 — OS / LIVI sans CarPlay
 
-- [ ] Trixie 64 bits confirmé ;
-- [ ] LIVI s’installe ;
-- [ ] LIVI démarre ;
+- [x] Trixie 64 bits confirmé ;
+- [x] LIVI s’installe ;
+- [x] LIVI démarre ;
 - [ ] affichage HDMI stable ;
-- [ ] démarrage automatique ;
+- [x] démarrage automatique ;
 - [ ] navigation clavier fonctionne ;
 - [ ] événements HID externes fonctionnent.
 
@@ -131,13 +131,46 @@ Après réussite du filaire :
 - [ ] reconnexion automatique ;
 - [ ] stabilité après plusieurs cycles démarrage/arrêt.
 
-## Installation LIVI
+## Installation LIVI — banc validé le 2026-09-10
 
-Utiliser en priorité la procédure officielle actuelle du dépôt LIVI.
+Source officielle figée : [installateur desktop v8.3.0](https://github.com/f-io/LIVI/blob/v8.3.0/scripts/install/desktop/install.sh) et [bibliothèque common.sh v8.3.0](https://github.com/f-io/LIVI/blob/v8.3.0/scripts/install/common.sh).
 
-Pour une cible automobile kiosk, l’installation headless est la piste naturelle ; pour le premier débogage, une installation desktop peut rester utile.
+L'installation via main avec la release v8.3.0 a échoué : la fonction de génération sudoers de main ne remplaçait plus `__PYTHON__`, présent dans le modèle embarqué de v8.3.0. `visudo` a rejeté le fichier temporaire avant activation. La reprise avec les scripts et l'AppImage v8.3.0 a terminé avec succès.
 
-Ne pas copier définitivement une commande d’installation dans ce dépôt sans vérifier qu’elle correspond encore à la branche/release LIVI utilisée.
+Procédure utilisée depuis SSH, comme utilisateur pi, sans sudo devant le script :
+
+```bash
+mkdir -p ~/installation-livi
+cd ~/installation-livi
+curl -fL -o install-desktop-v8.3.0.sh https://raw.githubusercontent.com/f-io/LIVI/v8.3.0/scripts/install/desktop/install.sh
+LIVI_INSTALLER_BRANCH=v8.3.0 bash install-desktop-v8.3.0.sh \
+  https://github.com/f-io/LIVI/releases/download/v8.3.0/LIVI-8.3.0-linux-arm64.AppImage
+```
+
+Options prévues pour ce banc : pas de configuration MFi sans matériel, pas de splash, pas de modification du pilote pour écran RGB/VGA basse fréquence. Cette commande retélécharge l'AppImage. Ne pas la relancer simplement pour diagnostiquer une installation déjà terminée.
+
+L'installateur ajoute les dépendances (dont pymobiledevice3 dans cette version), les règles udev/sudoers et l'autostart desktop. Le redémarrage a confirmé le lancement effectif dans la session graphique.
+
+Pour une future mise à jour, vérifier ensemble la version de l'application et de l'installateur. Le mode desktop est conservé pour le banc ; l'absence temporaire d'écran n'a pas entraîné de conversion au mode kiosk/headless.
+
+## Checkpoint actif — 2026-09-10 : LIVI installé et démarré
+
+- Banc Raspberry Pi 4 sur microSD, image avec bureau préparée avec Raspberry Pi Imager 1.7.2.
+- SSH fonctionnel : `ssh pi@raspberry-carplay.local`. Aucun écran physique disponible pour le moment.
+- OS mesuré : Debian GNU/Linux 13 (trixie), DEBIAN_VERSION_FULL=13.5 ; `uname -m = aarch64`.
+- LIVI v8.3.0 installé dans `/home/pi/LIVI/LIVI.AppImage` (environ 309 Mio).
+- Installateur desktop et AppImage épinglés à v8.3.0 après incompatibilité entre installateur main et release (marqueur sudoers `__PYTHON__` non remplacé). Validation sudoers réussie avec l'installateur correspondant.
+- Après redémarrage : `graphical.target`, display-manager actif, session Wayland active ; lancement automatique par `/home/pi/.config/autostart/LIVI.desktop`.
+- Logs : `/home/pi/.xsession-errors`. Le dossier `~/.config/LIVI/log/` était vide. `journalctl --user` ne retournait rien ; `sudo journalctl -b _UID=1000` permettait la lecture.
+- Initialisation graphique confirmée : OpenGL ES 3.1, Mesa 26.2.1, pilote v3d / Broadcom V3D 4.2.14.0. Compositeur LIVI sur wayland-1 au-dessus du bureau wayland-0, sortie logique main 1280×752, fenêtre LIVI affectée à main.
+- GStreamer 1.28.4 embarqué détecte H.264/H.265 matériels et logiciels ; aucun flux réel encore validé.
+- Assistant Python et surveillance CarPlay filaire démarrés ; zéro iPhone actif.
+- MFi non raccordé/configuré pour ce test : erreur d'initialisation FileNotFoundError attendue dans ce contexte. CarPlay natif NON validé. Les GPIO/bus MFi documentés restent une cible de câblage, pas une configuration matérielle validée.
+- Sans-fil désactivé (aaWireless=false, cpWireless=false), Bluetooth et point d'accès inactifs.
+- Avertissements VA-API/Vulkan, RTKit et portail Wayland observés : pas de blocage du démarrage démontré ; ne pas modifier au hasard la pile graphique.
+- Connexion du RP2040 au Pi explicitement reportée par David. Le prototype boutons/mute/molette du 8 septembre reste acquis ; USB HID pas encore implémenté.
+- Prochaine étape proposée : préparer un accès au bureau à distance sans écran pour voir/configurer LIVI, en vérifiant d'abord la compatibilité Wayland et l'absence de sortie physique. Aucun accès graphique distant n'a encore été installé ou validé.
+- Restent à valider : image réelle, navigation, vidéo projetée, audio/micro/Siri, MFi et CarPlay, puis HID. Aucun de ces résultats ne doit être déduit de la seule présence des processus.
 
 ## Critère de sortie de phase
 
