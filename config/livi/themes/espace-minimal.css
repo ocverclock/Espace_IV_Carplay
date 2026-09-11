@@ -1,0 +1,31 @@
+:root {
+  --espace-background: #000000;
+  --espace-primary: #f7f8fa;
+  --espace-secondary: #9ea3aa;
+  --espace-muted: #666b72;
+  --espace-accent: #9ea3aa;
+  --espace-rule: rgba(255, 255, 255, 0.08);
+  --espace-alert: #ff4d4d;
+
+  --gauge-background: #000000;
+  --gauge-scale: #5d6269;
+  --gauge-major: #aeb3ba;
+  --gauge-pointer: #f7f8fa;
+  --gauge-redline: #ff4d4d;
+  --gauge-shadow: rgba(0, 0, 0, 0.35);
+  --gauge-readout: #ffffff;
+  --gauge-readout-label: #777c83;
+
+  --wait-clock-weight: 300;
+  --wait-date-weight: 300;
+  --wait-clock-letter-spacing: -0.05em;
+}
+
+.espace-gauge-readout-value {
+  font-weight: 300 !important;
+  letter-spacing: -0.035em !important;
+}
+
+.espace-gauge-readout-label {
+  opacity: 0.45 !important;
+}
