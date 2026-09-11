@@ -1,0 +1,12 @@
+:root {
+  --espace-background: #000000;
+  --espace-primary: #ffffff;
+  --espace-secondary: #c4c8ce;
+  --espace-muted: #7c8188;
+  --espace-rule: rgba(255, 255, 255, 0.16);
+  --espace-alert: #ff4d4d;
+
+  --wait-clock-weight: 400;
+  --wait-date-weight: 400;
+  --wait-clock-letter-spacing: -0.055em;
+}
