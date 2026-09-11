@@ -3,8 +3,15 @@
   --espace-primary: #ffb84d;
   --espace-secondary: #c68a32;
   --espace-muted: #7d5925;
+  --espace-accent: #ffb84d;
   --espace-rule: rgba(255, 184, 77, 0.16);
   --espace-alert: #ff5a3d;
+
+  --gauge-scale: #7d5925;
+  --gauge-major: #c68a32;
+  --gauge-pointer: #ffb84d;
+  --gauge-redline: #ff5a3d;
+  --gauge-shadow: rgba(50, 25, 0, 0.55);
 
   --wait-clock-weight: 400;
   --wait-date-weight: 400;
