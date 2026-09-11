@@ -1,0 +1,15 @@
+{
+  "radius": 110,
+  "gapDeg": 180,
+  "armTicks": 3,
+  "ticks": 41,
+  "majorCount": 6,
+  "trailMax": 0.50,
+  "tickW": 3,
+  "tickH": 14,
+  "majorH": 26,
+  "labelSize": 15,
+  "pointerW": 4,
+  "pointerH": 38,
+  "pointerRadius": 1.5
+}
