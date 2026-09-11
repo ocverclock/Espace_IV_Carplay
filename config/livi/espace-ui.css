@@ -10,11 +10,14 @@
   --espace-alert: #ffb84d;
 
   /* Compteurs Dash1 / Dash2 / Dash3 */
+  --gauge-background: #000000;
   --gauge-scale: #6f747b;
   --gauge-major: #c4c8ce;
   --gauge-pointer: #f4f5f6;
   --gauge-redline: #ff4d4d;
   --gauge-shadow: rgba(0, 0, 0, 0.55);
+  --gauge-readout: #f4f5f6;
+  --gauge-readout-label: #a4a9b0;
 
   /* Écran d'attente */
   --wait-clock-size: clamp(5.2rem, 12vw, 8.5rem);
@@ -40,6 +43,14 @@
 .espace-gauge-dash,
 .espace-gauge-dash .MuiTypography-root {
   font-family: var(--espace-font-family) !important;
+}
+
+.espace-gauge-readout-value {
+  color: var(--gauge-readout) !important;
+}
+
+.espace-gauge-readout-label {
+  color: var(--gauge-readout-label) !important;
 }
 
 /* ---------- Dash4 Espace IV ---------- */
