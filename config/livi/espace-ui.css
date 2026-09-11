@@ -5,6 +5,7 @@
   --espace-primary: #f4f5f6;
   --espace-secondary: #a4a9b0;
   --espace-muted: #6f747b;
+  --espace-accent: #a4a9b0;
   --espace-rule: rgba(255, 255, 255, 0.10);
   --espace-alert: #ffb84d;
 
@@ -61,7 +62,7 @@
   font-size: 17px !important;
   font-weight: 500 !important;
   letter-spacing: 0.15em !important;
-  color: var(--espace-secondary);
+  color: var(--espace-accent);
 }
 
 .espace-outside-reading {
@@ -139,7 +140,7 @@
   line-height: 1 !important;
   font-weight: 500 !important;
   letter-spacing: 0.16em !important;
-  color: var(--espace-secondary);
+  color: var(--espace-accent);
 }
 
 .espace-section-rule {
