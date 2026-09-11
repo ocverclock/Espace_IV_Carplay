@@ -7,13 +7,26 @@
   --espace-rule: rgba(255, 184, 77, 0.16);
   --espace-alert: #ff5a3d;
 
+  --gauge-background: #000000;
   --gauge-scale: #7d5925;
-  --gauge-major: #c68a32;
+  --gauge-major: #d49a45;
   --gauge-pointer: #ffb84d;
   --gauge-redline: #ff5a3d;
   --gauge-shadow: rgba(50, 25, 0, 0.55);
+  --gauge-readout: #ffbd55;
+  --gauge-readout-label: #9f6e2b;
 
   --wait-clock-weight: 400;
   --wait-date-weight: 400;
   --wait-clock-letter-spacing: -0.025em;
+}
+
+.espace-gauge-pointer,
+.espace-gauge-hub {
+  filter: drop-shadow(0 0 3px rgba(255, 184, 77, 0.38));
+}
+
+.espace-gauge-readout-value {
+  font-weight: 400 !important;
+  font-variant-numeric: tabular-nums;
 }
