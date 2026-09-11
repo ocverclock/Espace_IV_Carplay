@@ -3,8 +3,9 @@
   --espace-primary: #ffffff;
   --espace-secondary: #c4c8ce;
   --espace-muted: #7c8188;
-  --espace-rule: rgba(255, 255, 255, 0.16);
-  --espace-alert: #ff4d4d;
+  --espace-accent: #ff4d4d;
+  --espace-rule: rgba(255, 77, 77, 0.22);
+  --espace-alert: #ff3b30;
 
   --wait-clock-weight: 400;
   --wait-date-weight: 400;
