@@ -1,0 +1,347 @@
+diff --git a/src/main/ipc/settings.ts b/src/main/ipc/settings.ts
+--- a/src/main/ipc/settings.ts
++++ b/src/main/ipc/settings.ts
+@@ -61,6 +61,20 @@ export function registerSettingsIpc(runtimeState: runtimeStateProps) {
+     return chunks.join('\n\n')
+   })
+ 
++  registerIpcHandle('app:readCustomGaugeConfig', async () => {
++    const file = join(app.getPath('userData'), 'custom', 'espace-gauges.json')
++    try {
++      return await readFile(file, 'utf8')
++    } catch (error) {
++      const code = (error as NodeJS.ErrnoException)?.code
++      if (code !== 'ENOENT') {
++        console.warn(`[custom-ui] unable to read ${file}:`, error)
++      }
++      return ''
++    }
++  })
++
+   registerIpcHandle('app:listDisplayModes', () => listHostOutputModes())
+ 
+   registerIpcHandle('app:listWifiChannels', () => listWifiChannels(runtimeState.config.wifiType))
+diff --git a/src/preload/index.ts b/src/preload/index.ts
+--- a/src/preload/index.ts
++++ b/src/preload/index.ts
+@@ -233,6 +233,8 @@ const appApi = {
+   compositor: process.env.LIVI_COMPOSITOR === '1',
+   getVersion: (): Promise<string> => ipcRenderer.invoke('app:getVersion'),
+   readCustomCss: (): Promise<string> => ipcRenderer.invoke('app:readCustomCss'),
++  readCustomGaugeConfig: (): Promise<string> =>
++    ipcRenderer.invoke('app:readCustomGaugeConfig'),
+   listDisplayModes: (): Promise<string[]> => ipcRenderer.invoke('app:listDisplayModes'),
+   listWifiChannels: (): Promise<number[]> => ipcRenderer.invoke('app:listWifiChannels'),
+   listWifiCountryCodes: (): Promise<string[]> => ipcRenderer.invoke('app:listWifiCountryCodes'),
+diff --git a/src/renderer/src/env.d.ts b/src/renderer/src/env.d.ts
+--- a/src/renderer/src/env.d.ts
++++ b/src/renderer/src/env.d.ts
+@@ -185,6 +185,7 @@ declare global {
+       restartApp(): Promise<void>
+       getVersion(): Promise<string>
+       readCustomCss(): Promise<string>
++      readCustomGaugeConfig(): Promise<string>
+       listDisplayModes(): Promise<string[]>
+       listWifiChannels(): Promise<number[]>
+       listWifiCountryCodes(): Promise<string[]>
+diff --git a/src/renderer/src/components/pages/telemetry/hooks/useEspaceGaugeConfig.ts b/src/renderer/src/components/pages/telemetry/hooks/useEspaceGaugeConfig.ts
+new file mode 100644
+--- /dev/null
++++ b/src/renderer/src/components/pages/telemetry/hooks/useEspaceGaugeConfig.ts
+@@ -0,0 +1,125 @@
++import { useEffect, useState } from 'react'
++
++export type EspaceGaugeConfig = {
++  radius: number
++  gapDeg: number
++  armTicks: number
++  ticks: number
++  majorCount: number
++  trailMax: number
++  tickW: number
++  tickH: number
++  majorH: number
++  labelSize: number
++  pointerW: number
++  pointerH: number
++  pointerRadius: number
++}
++
++export const DEFAULT_ESPACE_GAUGE_CONFIG: EspaceGaugeConfig = {
++  radius: 110,
++  gapDeg: 180,
++  armTicks: 3,
++  ticks: 41,
++  majorCount: 6,
++  trailMax: 0.5,
++  tickW: 3,
++  tickH: 14,
++  majorH: 26,
++  labelSize: 15,
++  pointerW: 4,
++  pointerH: 38,
++  pointerRadius: 1.5
++}
++
++const clamp = (value: number, min: number, max: number): number =>
++  Math.max(min, Math.min(max, value))
++
++const numberValue = (
++  source: Record<string, unknown>,
++  key: keyof EspaceGaugeConfig,
++  fallback: number,
++  min: number,
++  max: number,
++  integer = false
++): number => {
++  const raw = source[key]
++  if (typeof raw !== 'number' || !Number.isFinite(raw)) return fallback
++  const value = clamp(raw, min, max)
++  return integer ? Math.round(value) : value
++}
++
++const sanitize = (source: Record<string, unknown>): EspaceGaugeConfig => ({
++  radius: numberValue(source, 'radius', 110, 80, 145),
++  gapDeg: numberValue(source, 'gapDeg', 180, 120, 240),
++  armTicks: numberValue(source, 'armTicks', 3, 0, 8, true),
++  ticks: numberValue(source, 'ticks', 41, 11, 81, true),
++  majorCount: numberValue(source, 'majorCount', 6, 2, 10, true),
++  trailMax: numberValue(source, 'trailMax', 0.5, 0, 1),
++  tickW: numberValue(source, 'tickW', 3, 1, 8),
++  tickH: numberValue(source, 'tickH', 14, 6, 30),
++  majorH: numberValue(source, 'majorH', 26, 12, 50),
++  labelSize: numberValue(source, 'labelSize', 15, 10, 28),
++  pointerW: numberValue(source, 'pointerW', 4, 2, 12),
++  pointerH: numberValue(source, 'pointerH', 38, 18, 70),
++  pointerRadius: numberValue(source, 'pointerRadius', 1.5, 0, 6)
++})
++
++export function useEspaceGaugeConfig(): EspaceGaugeConfig {
++  const [config, setConfig] = useState<EspaceGaugeConfig>(DEFAULT_ESPACE_GAUGE_CONFIG)
++
++  useEffect(() => {
++    let disposed = false
++    let lastRaw: string | null = null
++
++    const load = async () => {
++      try {
++        const raw = await window.app.readCustomGaugeConfig()
++        if (disposed || raw === lastRaw) return
++        lastRaw = raw
++
++        if (!raw.trim()) {
++          setConfig(DEFAULT_ESPACE_GAUGE_CONFIG)
++          return
++        }
++
++        const parsed = JSON.parse(raw) as unknown
++        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
++          throw new Error('gauge config root must be an object')
++        }
++
++        setConfig(sanitize(parsed as Record<string, unknown>))
++      } catch (error) {
++        console.warn('[custom-ui] unable to load espace-gauges.json:', error)
++      }
++    }
++
++    void load()
++    const timer = window.setInterval(() => void load(), 1000)
++
++    return () => {
++      disposed = true
++      window.clearInterval(timer)
++    }
++  }, [])
++
++  return config
++}
+diff --git a/src/renderer/src/components/pages/telemetry/widgets/GaugeArc.tsx b/src/renderer/src/components/pages/telemetry/widgets/GaugeArc.tsx
+--- a/src/renderer/src/components/pages/telemetry/widgets/GaugeArc.tsx
++++ b/src/renderer/src/components/pages/telemetry/widgets/GaugeArc.tsx
+@@ -21,6 +21,9 @@ export type GaugeArcProps = {
+   tickH?: number
+   majorH?: number
+   labelSize?: number
++  pointerW?: number
++  pointerH?: number
++  pointerRadius?: number
+   colorScale: string
+   colorMajor: string
+   colorPointer: string
+@@ -93,6 +96,9 @@ export function GaugeArc({
+   tickH = 14,
+   majorH = 26,
+   labelSize = 15,
++  pointerW,
++  pointerH,
++  pointerRadius,
+   colorScale,
+   colorMajor,
+   colorPointer,
+@@ -106,6 +112,9 @@ export function GaugeArc({
+   const arcTicks = Math.max(2, Math.floor(ticks))
+   const caps = Math.max(0, Math.floor(armTicks))
+   const pts = gaugeTicks(radius, gapDeg, arcTicks, caps)
++  const needleW = pointerW ?? tickW + 1
++  const needleH = pointerH ?? majorH + 12
++  const needleRadius = pointerRadius ?? 1.5
+ 
+   const safeMax = Math.max(1, scaleMax)
+   const targetT = clamp(value / safeMax, 0, 1)
+@@ -236,16 +245,15 @@ export function GaugeArc({
+       {(() => {
+         const nip = arcAt(radius, gapDeg, dT)
+         const { px, py, pang } = place(nip.x, nip.y, nip.ang)
+-        const nH = majorH + 12
+-        const cxn = px - Math.cos(rad(pang)) * ((nH - tickH) / 2)
+-        const cyn = py - Math.sin(rad(pang)) * ((nH - tickH) / 2)
++        const cxn = px - Math.cos(rad(pang)) * ((needleH - tickH) / 2)
++        const cyn = py - Math.sin(rad(pang)) * ((needleH - tickH) / 2)
+         return (
+           <rect
+-            x={cxn - (tickW + 1) / 2}
+-            y={cyn - nH / 2}
+-            width={tickW + 1}
+-            height={nH}
+-            rx={1.5}
++            x={cxn - needleW / 2}
++            y={cyn - needleH / 2}
++            width={needleW}
++            height={needleH}
++            rx={needleRadius}
+             fill={dT >= redT ? colorRedline : colorPointer}
+             fillOpacity={dOp}
+             transform={`rotate(${pang + 90} ${cxn} ${cyn})`}
+diff --git a/src/renderer/src/components/pages/telemetry/dashboards/dash1/DashFrame.tsx b/src/renderer/src/components/pages/telemetry/dashboards/dash1/DashFrame.tsx
+--- a/src/renderer/src/components/pages/telemetry/dashboards/dash1/DashFrame.tsx
++++ b/src/renderer/src/components/pages/telemetry/dashboards/dash1/DashFrame.tsx
+@@ -4,6 +4,7 @@ import { useLiviStore, useStatusStore } from '@store/store'
+ import { type ReactNode, useEffect, useState } from 'react'
+ import { DashShell } from '../../components/DashShell'
++import { useEspaceGaugeConfig } from '../../hooks/useEspaceGaugeConfig'
+ import { useVehicleTelemetry } from '../../hooks/useVehicleTelemetry'
+ import {
+   FuelGauge,
+@@ -35,6 +36,16 @@ import {
+ 
+ const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v))
+ 
++const scaleLabels = (max: number, count: number, divisor = 1): string[] =>
++  Array.from({ length: Math.max(2, count) }, (_, index) => {
++    const value = (max * index) / Math.max(1, count - 1) / divisor
++    if (Number.isInteger(value)) return String(value)
++    return value.toFixed(1).replace(/\.0$/, '')
++  })
++
+ const stageScale = (w: number, h: number): number => {
+   const s = Math.min(w / BASE_W, h / BASE_H)
+   return Number.isFinite(s) && s > 0 ? s : 1
+@@ -63,6 +74,7 @@ export type DashFrameProps = {
+ export function DashFrame({ children, clusterFull }: DashFrameProps) {
+   const theme = useTheme()
+   const { telemetry } = useVehicleTelemetry()
++  const gaugeConfig = useEspaceGaugeConfig()
+   const isClusterDash = clusterFull === true
+   const setClusterDashActive = useStatusStore((s) => s.setClusterDashActive)
+   useEffect(() => {
+@@ -91,6 +103,9 @@ export function DashFrame({ children, clusterFull }: DashFrameProps) {
+   const fuelMode: 'fuel' | 'battery' = carType === CarType.Electric ? 'battery' : 'fuel'
+ 
++  const speedLabels = scaleLabels(SPEED_SCALE_MAX, gaugeConfig.majorCount)
++  const rpmLabels = scaleLabels(RPM_SCALE_MAX, gaugeConfig.majorCount, 1000)
++
+   const [scale, setScale] = useState(() => stageScale(window.innerWidth, window.innerHeight))
+   const [sidePush, setSidePush] = useState(() =>
+     stagePush(window.innerWidth, stageScale(window.innerWidth, window.innerHeight))
+@@ -141,7 +156,11 @@ export function DashFrame({ children, clusterFull }: DashFrameProps) {
+ 
+   return (
+     <DashShell>
+-      <Box sx={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
++      <Box
++        className="espace-gauge-dash"
++        sx={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}
++      >
+         {/* Normal dash: a plain dark backdrop. Either cluster mode drops it so the plane shows. */}
+         {!isClusterDash && (
+           <Box sx={{ position: 'absolute', inset: 0, backgroundColor: clusterBg }} />
+@@ -174,19 +193,28 @@ export function DashFrame({ children, clusterFull }: DashFrameProps) {
+             <Box sx={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+               <GaugeArc
+                 value={speedKph}
+                 scaleMax={SPEED_SCALE_MAX}
+-                ticks={GAUGE_TICKS}
+-                radius={GAUGE_RADIUS}
+-                gapDeg={GAUGE_GAP_DEG}
+-                armTicks={GAUGE_ARM_TICKS}
+-                majorCount={GAUGE_MAJOR_COUNT}
+-                labels={SPEED_LABELS}
+-                colorScale={theme.palette.text.disabled}
+-                colorMajor={theme.palette.text.secondary}
+-                colorPointer={theme.palette.text.primary}
+-                colorRedline={theme.palette.error.main}
++                ticks={gaugeConfig.ticks}
++                radius={gaugeConfig.radius}
++                gapDeg={gaugeConfig.gapDeg}
++                armTicks={gaugeConfig.armTicks}
++                majorCount={gaugeConfig.majorCount}
++                labels={speedLabels}
++                trailMax={gaugeConfig.trailMax}
++                tickW={gaugeConfig.tickW}
++                tickH={gaugeConfig.tickH}
++                majorH={gaugeConfig.majorH}
++                labelSize={gaugeConfig.labelSize}
++                pointerW={gaugeConfig.pointerW}
++                pointerH={gaugeConfig.pointerH}
++                pointerRadius={gaugeConfig.pointerRadius}
++                colorScale={`var(--gauge-scale, ${theme.palette.text.disabled})`}
++                colorMajor={`var(--gauge-major, ${theme.palette.text.secondary})`}
++                colorPointer={`var(--gauge-pointer, ${theme.palette.text.primary})`}
++                colorRedline={`var(--gauge-redline, ${theme.palette.error.main})`}
+                 shadow={clusterFull}
+-                shadowColor={calShadowColor}
++                shadowColor={`var(--gauge-shadow, ${calShadowColor})`}
+               />
+             </Box>
+             <Box
+@@ -224,20 +252,29 @@ export function DashFrame({ children, clusterFull }: DashFrameProps) {
+               <GaugeArc
+                 value={rpm}
+                 scaleMax={RPM_SCALE_MAX}
+                 redline={RPM_REDLINE}
+-                ticks={GAUGE_TICKS}
+-                radius={GAUGE_RADIUS}
+-                gapDeg={GAUGE_GAP_DEG}
+-                armTicks={GAUGE_ARM_TICKS}
+-                majorCount={GAUGE_MAJOR_COUNT}
+-                labels={RPM_LABELS}
++                ticks={gaugeConfig.ticks}
++                radius={gaugeConfig.radius}
++                gapDeg={gaugeConfig.gapDeg}
++                armTicks={gaugeConfig.armTicks}
++                majorCount={gaugeConfig.majorCount}
++                labels={rpmLabels}
+                 mirror
+-                colorScale={theme.palette.text.disabled}
+-                colorMajor={theme.palette.text.secondary}
+-                colorPointer={theme.palette.text.primary}
+-                colorRedline={theme.palette.error.main}
++                trailMax={gaugeConfig.trailMax}
++                tickW={gaugeConfig.tickW}
++                tickH={gaugeConfig.tickH}
++                majorH={gaugeConfig.majorH}
++                labelSize={gaugeConfig.labelSize}
++                pointerW={gaugeConfig.pointerW}
++                pointerH={gaugeConfig.pointerH}
++                pointerRadius={gaugeConfig.pointerRadius}
++                colorScale={`var(--gauge-scale, ${theme.palette.text.disabled})`}
++                colorMajor={`var(--gauge-major, ${theme.palette.text.secondary})`}
++                colorPointer={`var(--gauge-pointer, ${theme.palette.text.primary})`}
++                colorRedline={`var(--gauge-redline, ${theme.palette.error.main})`}
+                 shadow={clusterFull}
+-                shadowColor={calShadowColor}
++                shadowColor={`var(--gauge-shadow, ${calShadowColor})`}
+               />
+             </Box>
+             <Box
