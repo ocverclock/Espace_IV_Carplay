@@ -4,6 +4,7 @@ set -euo pipefail
 CUSTOM_DIR="${LIVI_CUSTOM_DIR:-$HOME/.config/LIVI/custom}"
 THEME_DIR="${LIVI_THEME_DIR:-$CUSTOM_DIR/themes}"
 ACTIVE_THEME="$CUSTOM_DIR/espace-theme.css"
+ACTIVE_GAUGES="$CUSTOM_DIR/espace-gauges.json"
 
 usage() {
   cat <<'EOF'
@@ -19,14 +20,28 @@ Examples:
   theme-switch.sh espace-retro
   theme-switch.sh off
 
-The selected CSS is copied atomically to:
-  ~/.config/LIVI/custom/espace-theme.css
+The selected preset can contain two files:
+  <theme>.css   -> ~/.config/LIVI/custom/espace-theme.css
+  <theme>.json  -> ~/.config/LIVI/custom/espace-gauges.json
 
-With the Espace hot-reload patch installed, LIVI applies the change in about one second without restart.
+With the Espace hot-reload patches installed, LIVI applies palette and gauge geometry changes in about one second without restart.
 EOF
 }
 
 mkdir -p "$CUSTOM_DIR" "$THEME_DIR"
+
+copy_atomic() {
+  local source_file="$1"
+  local destination_file="$2"
+  local tmp_file
+
+  tmp_file="$(mktemp "$CUSTOM_DIR/.theme-switch.XXXXXX")"
+  trap 'rm -f "$tmp_file"' RETURN
+  cat "$source_file" > "$tmp_file"
+  chmod 0644 "$tmp_file"
+  mv -f "$tmp_file" "$destination_file"
+  trap - RETURN
+}
 
 cmd="${1:-}"
 case "$cmd" in
@@ -45,8 +60,8 @@ case "$cmd" in
     ;;
 
   off)
-    rm -f "$ACTIVE_THEME"
-    echo "Theme override disabled. Base espace-ui.css remains active."
+    rm -f "$ACTIVE_THEME" "$ACTIVE_GAUGES"
+    echo "Theme override disabled. Base Espace UI and compiled gauge defaults remain active."
     ;;
 
   -h|--help|help|"")
@@ -54,21 +69,24 @@ case "$cmd" in
     ;;
 
   *)
-    source_file="$THEME_DIR/$cmd.css"
-    if [[ ! -f "$source_file" ]]; then
+    source_css="$THEME_DIR/$cmd.css"
+    source_gauges="$THEME_DIR/$cmd.json"
+
+    if [[ ! -f "$source_css" ]]; then
       echo "Unknown theme: $cmd" >&2
       echo "Available themes:" >&2
       "$0" list >&2 || true
       exit 1
     fi
 
-    tmp_file="$(mktemp "$CUSTOM_DIR/.espace-theme.css.XXXXXX")"
-    trap 'rm -f "$tmp_file"' EXIT
-    cat "$source_file" > "$tmp_file"
-    chmod 0644 "$tmp_file"
-    mv -f "$tmp_file" "$ACTIVE_THEME"
-    trap - EXIT
+    copy_atomic "$source_css" "$ACTIVE_THEME"
 
-    echo "Theme activated: $cmd"
+    if [[ -f "$source_gauges" ]]; then
+      copy_atomic "$source_gauges" "$ACTIVE_GAUGES"
+      echo "Theme activated: $cmd (CSS + gauges)"
+    else
+      rm -f "$ACTIVE_GAUGES"
+      echo "Theme activated: $cmd (CSS only; gauge defaults restored)"
+    fi
     ;;
 esac
