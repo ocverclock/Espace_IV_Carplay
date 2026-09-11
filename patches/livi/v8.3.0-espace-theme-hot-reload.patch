@@ -1,8 +1,7 @@
 diff --git a/src/main/ipc/settings.ts b/src/main/ipc/settings.ts
 --- a/src/main/ipc/settings.ts
 +++ b/src/main/ipc/settings.ts
-@@ -46,16 +46,25 @@ export function registerSettingsIpc(runtimeState: runtimeStateProps) {
- 
+@@ -1,16 +1,23 @@
    registerIpcHandle('app:getVersion', () => app.getVersion())
  
    registerIpcHandle('app:readCustomCss', async () => {
@@ -37,7 +36,7 @@ diff --git a/src/main/ipc/settings.ts b/src/main/ipc/settings.ts
 diff --git a/src/renderer/src/main.tsx b/src/renderer/src/main.tsx
 --- a/src/renderer/src/main.tsx
 +++ b/src/renderer/src/main.tsx
-@@ -21,14 +21,22 @@ import { AppContext, type AppContextProps } from './context'
+@@ -21,12 +21,20 @@
  import './i18n'
  import { getWindowRole } from './utils/windowRole'
  
@@ -59,8 +58,7 @@ diff --git a/src/renderer/src/main.tsx b/src/renderer/src/main.tsx
      if (!style) {
        style = document.createElement('style')
        style.id = 'espace-custom-ui'
-       document.head.appendChild(style)
-@@ -39,6 +47,15 @@ async function loadCustomCss(): Promise<void> {
+@@ -39,6 +47,14 @@
    }
  }
  
@@ -75,7 +73,7 @@ diff --git a/src/renderer/src/main.tsx b/src/renderer/src/main.tsx
  const role = getWindowRole()
  if (role === 'main') {
    initUiBreatheClock()
-@@ -115,5 +132,8 @@ const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement)
+@@ -116,4 +132,7 @@
  
  void loadCustomCss().finally(() => {
    root.render(<Root />)
