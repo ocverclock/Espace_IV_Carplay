@@ -1,0 +1,11 @@
+:root {
+  --espace-background: #000000;
+  --espace-primary: #f4f5f6;
+  --espace-secondary: #a4a9b0;
+  --espace-muted: #6f747b;
+  --espace-rule: rgba(255, 255, 255, 0.10);
+  --espace-alert: #ffb84d;
+
+  --wait-clock-weight: 300;
+  --wait-date-weight: 300;
+}
