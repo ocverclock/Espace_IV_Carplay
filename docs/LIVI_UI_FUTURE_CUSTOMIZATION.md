@@ -4,120 +4,122 @@ Note de travail à conserver pour les prochaines évolutions de l'interface.
 
 ## Compteurs / jauges Dash1 et Dash2
 
-Les compteurs natifs LIVI sont déjà très paramétrables dans le code (`GaugeArc`, constantes des dashboards) :
-
-- rayon ;
-- ouverture de l'arc ;
-- nombre de graduations ;
-- nombre de graduations majeures ;
-- largeur / longueur des traits ;
-- taille des chiffres ;
-- bras haut / bas ;
-- intensité de la traînée ;
-- couleurs ;
-- zone rouge ;
-- ombre / glow ;
-- animation de l'aiguille.
+Les compteurs natifs LIVI (`GaugeArc`) sont très paramétrables : rayon, ouverture, nombre de graduations, largeur / longueur des traits, taille des chiffres, bras haut / bas, traînée, couleurs, zone rouge, ombre et aiguille.
 
 ## Direction retenue
 
-Le checkpoint UI/télémétrie validé reste conservé tel quel. Les évolutions ci-dessous sont une couche supplémentaire et doivent être validées séparément sur le Raspberry avant d'être intégrées au checkpoint principal.
+Le checkpoint UI/télémétrie validé reste conservé. Les évolutions ci-dessous sont une couche supplémentaire et doivent être validées séparément sur le Raspberry avant d'être intégrées au checkpoint principal.
 
-L'objectif est de donner progressivement à Dash1 / Dash2 la même identité visuelle que Dash4 : police Inter, palette Espace IV, contraste automobile, hiérarchie visuelle cohérente.
+L'objectif est que l'esthétique puisse être modifiée sans rebuild après une adaptation initiale de LIVI.
 
-Séparer autant que possible les réglages visuels du code compilé :
+### Fichiers runtime
 
 ```text
 ~/.config/LIVI/custom/espace-ui.css
-```
-
-pour le style de base, et :
-
-```text
 ~/.config/LIVI/custom/espace-theme.css
+~/.config/LIVI/custom/espace-gauges.json
 ```
 
-pour les surcharges de thème actives.
+- `espace-ui.css` : style de base commun ;
+- `espace-theme.css` : palette / couleurs du thème actif ;
+- `espace-gauges.json` : géométrie des compteurs et de l'aiguille.
 
-## Changement de thème à chaud
+## Hot reload CSS
 
-Un patch expérimental est maintenant préparé :
+Patch :
 
 ```text
 patches/livi/v8.3.0-espace-theme-hot-reload.patch
 ```
 
-Principe :
+Le renderer principal relit le CSS externe toutes les secondes et remplace le bloc de style uniquement si le contenu a changé.
 
-1. LIVI charge `espace-ui.css` puis, s'il existe, `espace-theme.css` ;
-2. le renderer principal relit le CSS externe toutes les secondes ;
-3. il compare le contenu avec la version déjà appliquée ;
-4. si le fichier a changé, le bloc `<style id="espace-custom-ui">` est remplacé immédiatement ;
-5. aucun redémarrage de LIVI n'est requis pour un changement purement CSS.
+**État : validé sur Raspberry Pi le 2026-09-11.** Le changement OEM / Sport / Retro a été observé à chaud sur Dash4, sans redémarrage de LIVI.
 
-Le polling à une seconde est volontairement simple et robuste. Les fichiers CSS sont très petits et le coût est négligeable à l'échelle du Raspberry Pi 4. Une surveillance native du fichier pourra être envisagée plus tard si nécessaire.
+## Hot reload des compteurs
 
-### Thèmes de départ
+Patch préparé :
 
-Trois presets de travail sont conservés dans le dépôt :
+```text
+patches/livi/v8.3.0-espace-gauges-hot-reload.patch
+```
+
+Ce patch ajoute la lecture à chaud de :
+
+```text
+~/.config/LIVI/custom/espace-gauges.json
+```
+
+Dash1 / Dash2 / Dash3 doivent relire ce fichier environ une fois par seconde.
+
+Paramètres externalisés :
+
+```json
+{
+  "radius": 110,
+  "gapDeg": 180,
+  "armTicks": 3,
+  "ticks": 41,
+  "majorCount": 6,
+  "trailMax": 0.5,
+  "tickW": 3,
+  "tickH": 14,
+  "majorH": 26,
+  "labelSize": 15,
+  "pointerW": 4,
+  "pointerH": 38,
+  "pointerRadius": 1.5
+}
+```
+
+Les couleurs des compteurs passent par les variables CSS :
+
+```text
+--gauge-scale
+--gauge-major
+--gauge-pointer
+--gauge-redline
+--gauge-shadow
+```
+
+Ainsi la couleur peut changer instantanément par CSS, tandis que la géométrie est rechargée depuis le JSON sans rebuild.
+
+Les valeurs mécaniques de la voiture, comme la redline RPM réelle, restent dans la logique véhicule : un thème ne doit pas modifier une information de sécurité ou de fonctionnement.
+
+## Presets
+
+Chaque thème peut maintenant avoir une paire CSS + JSON :
 
 ```text
 config/livi/themes/espace-oem.css
+config/livi/themes/espace-oem.json
 config/livi/themes/espace-sport.css
+config/livi/themes/espace-sport.json
 config/livi/themes/espace-retro.css
+config/livi/themes/espace-retro.json
 ```
 
-Ils ne constituent pas encore trois designs définitifs des compteurs. Ils servent à valider le mécanisme de changement de palette / contraste / typographie à chaud sur l'écran d'attente et Dash4.
+Le thème Sport utilise volontairement le rouge comme accent : aiguille et redline rouges, textes principaux blancs, graduations gris clair.
 
-Une fois copiés dans :
-
-```text
-~/.config/LIVI/custom/themes/
-```
-
-le script :
+Le script :
 
 ```text
 scripts/livi/theme-switch.sh
 ```
 
-permettra notamment :
+copie maintenant les deux fichiers runtime de manière atomique lorsqu'un preset possède un JSON :
 
 ```bash
-theme-switch.sh list
 theme-switch.sh espace-oem
 theme-switch.sh espace-sport
 theme-switch.sh espace-retro
 theme-switch.sh off
 ```
 
-Le script remplace atomiquement `espace-theme.css`. Le renderer doit alors appliquer le nouveau thème en environ une seconde sans redémarrage.
-
-## Géométrie des compteurs — étape suivante
-
-Les paramètres structurels de `GaugeArc` ne sont pas encore externalisés. Ils restent aujourd'hui compilés dans LIVI.
-
-Une future étape pourra introduire par exemple :
-
-```text
-~/.config/LIVI/custom/espace-gauges.json
-```
-
-pour les paramètres comme :
-
-- rayon ;
-- ouverture ;
-- nombre de graduations ;
-- graduations majeures ;
-- épaisseurs ;
-- traînée ;
-- redline ;
-- paramètres d'animation.
-
-Ce fichier devra lui aussi pouvoir être rechargé à chaud afin de comparer plusieurs géométries directement sur l'écran 7 pouces sans recompilation complète à chaque essai.
+Après validation du patch compteurs, un changement de thème doit donc modifier palette + forme des compteurs + aiguille en environ une seconde, sans redémarrage de LIVI.
 
 ## Règle
 
 La lisibilité automobile prime sur l'esthétique. Toute évolution des jauges doit être testée sur l'écran 7 pouces réel avant validation définitive.
 
-Le patch de hot reload est pour l'instant **préparé mais non validé sur le Raspberry**. Ne pas remplacer le checkpoint stable tant que `git apply --check`, `typecheck`, `build:app`, le build ARM64 et le test visuel réel n'ont pas été réalisés.
+**État du patch compteurs : préparé mais pas encore validé sur le Raspberry.** Il faut faire `git apply --check`, `typecheck`, `build:app`, build ARM64 et test visuel réel avant intégration au checkpoint stable.
