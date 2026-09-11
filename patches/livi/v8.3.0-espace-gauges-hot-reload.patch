@@ -1,7 +1,7 @@
 diff --git a/src/main/ipc/settings.ts b/src/main/ipc/settings.ts
 --- a/src/main/ipc/settings.ts
 +++ b/src/main/ipc/settings.ts
-@@ -61,6 +61,20 @@ export function registerSettingsIpc(runtimeState: runtimeStateProps) {
+@@ -61,6 +61,19 @@ export function registerSettingsIpc(runtimeState: runtimeStateProps) {
      return chunks.join('\n\n')
    })
  
@@ -44,122 +44,10 @@ diff --git a/src/renderer/src/env.d.ts b/src/renderer/src/env.d.ts
        listDisplayModes(): Promise<string[]>
        listWifiChannels(): Promise<number[]>
        listWifiCountryCodes(): Promise<string[]>
-diff --git a/src/renderer/src/components/pages/telemetry/hooks/useEspaceGaugeConfig.ts b/src/renderer/src/components/pages/telemetry/hooks/useEspaceGaugeConfig.ts
-new file mode 100644
---- /dev/null
-+++ b/src/renderer/src/components/pages/telemetry/hooks/useEspaceGaugeConfig.ts
-@@ -0,0 +1,125 @@
-+import { useEffect, useState } from 'react'
-+
-+export type EspaceGaugeConfig = {
-+  radius: number
-+  gapDeg: number
-+  armTicks: number
-+  ticks: number
-+  majorCount: number
-+  trailMax: number
-+  tickW: number
-+  tickH: number
-+  majorH: number
-+  labelSize: number
-+  pointerW: number
-+  pointerH: number
-+  pointerRadius: number
-+}
-+
-+export const DEFAULT_ESPACE_GAUGE_CONFIG: EspaceGaugeConfig = {
-+  radius: 110,
-+  gapDeg: 180,
-+  armTicks: 3,
-+  ticks: 41,
-+  majorCount: 6,
-+  trailMax: 0.5,
-+  tickW: 3,
-+  tickH: 14,
-+  majorH: 26,
-+  labelSize: 15,
-+  pointerW: 4,
-+  pointerH: 38,
-+  pointerRadius: 1.5
-+}
-+
-+const clamp = (value: number, min: number, max: number): number =>
-+  Math.max(min, Math.min(max, value))
-+
-+const numberValue = (
-+  source: Record<string, unknown>,
-+  key: keyof EspaceGaugeConfig,
-+  fallback: number,
-+  min: number,
-+  max: number,
-+  integer = false
-+): number => {
-+  const raw = source[key]
-+  if (typeof raw !== 'number' || !Number.isFinite(raw)) return fallback
-+  const value = clamp(raw, min, max)
-+  return integer ? Math.round(value) : value
-+}
-+
-+const sanitize = (source: Record<string, unknown>): EspaceGaugeConfig => ({
-+  radius: numberValue(source, 'radius', 110, 80, 145),
-+  gapDeg: numberValue(source, 'gapDeg', 180, 120, 240),
-+  armTicks: numberValue(source, 'armTicks', 3, 0, 8, true),
-+  ticks: numberValue(source, 'ticks', 41, 11, 81, true),
-+  majorCount: numberValue(source, 'majorCount', 6, 2, 10, true),
-+  trailMax: numberValue(source, 'trailMax', 0.5, 0, 1),
-+  tickW: numberValue(source, 'tickW', 3, 1, 8),
-+  tickH: numberValue(source, 'tickH', 14, 6, 30),
-+  majorH: numberValue(source, 'majorH', 26, 12, 50),
-+  labelSize: numberValue(source, 'labelSize', 15, 10, 28),
-+  pointerW: numberValue(source, 'pointerW', 4, 2, 12),
-+  pointerH: numberValue(source, 'pointerH', 38, 18, 70),
-+  pointerRadius: numberValue(source, 'pointerRadius', 1.5, 0, 6)
-+})
-+
-+export function useEspaceGaugeConfig(): EspaceGaugeConfig {
-+  const [config, setConfig] = useState<EspaceGaugeConfig>(DEFAULT_ESPACE_GAUGE_CONFIG)
-+
-+  useEffect(() => {
-+    let disposed = false
-+    let lastRaw: string | null = null
-+
-+    const load = async () => {
-+      try {
-+        const raw = await window.app.readCustomGaugeConfig()
-+        if (disposed || raw === lastRaw) return
-+        lastRaw = raw
-+
-+        if (!raw.trim()) {
-+          setConfig(DEFAULT_ESPACE_GAUGE_CONFIG)
-+          return
-+        }
-+
-+        const parsed = JSON.parse(raw) as unknown
-+        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
-+          throw new Error('gauge config root must be an object')
-+        }
-+
-+        setConfig(sanitize(parsed as Record<string, unknown>))
-+      } catch (error) {
-+        console.warn('[custom-ui] unable to load espace-gauges.json:', error)
-+      }
-+    }
-+
-+    void load()
-+    const timer = window.setInterval(() => void load(), 1000)
-+
-+    return () => {
-+      disposed = true
-+      window.clearInterval(timer)
-+    }
-+  }, [])
-+
-+  return config
-+}
 diff --git a/src/renderer/src/components/pages/telemetry/widgets/GaugeArc.tsx b/src/renderer/src/components/pages/telemetry/widgets/GaugeArc.tsx
 --- a/src/renderer/src/components/pages/telemetry/widgets/GaugeArc.tsx
 +++ b/src/renderer/src/components/pages/telemetry/widgets/GaugeArc.tsx
-@@ -21,6 +21,9 @@ export type GaugeArcProps = {
+@@ -21,6 +21,9 @@
    tickH?: number
    majorH?: number
    labelSize?: number
@@ -169,7 +57,7 @@ diff --git a/src/renderer/src/components/pages/telemetry/widgets/GaugeArc.tsx b/
    colorScale: string
    colorMajor: string
    colorPointer: string
-@@ -93,6 +96,9 @@ export function GaugeArc({
+@@ -93,6 +96,9 @@
    tickH = 14,
    majorH = 26,
    labelSize = 15,
@@ -179,7 +67,7 @@ diff --git a/src/renderer/src/components/pages/telemetry/widgets/GaugeArc.tsx b/
    colorScale,
    colorMajor,
    colorPointer,
-@@ -106,6 +112,9 @@ export function GaugeArc({
+@@ -106,6 +112,9 @@
    const arcTicks = Math.max(2, Math.floor(ticks))
    const caps = Math.max(0, Math.floor(armTicks))
    const pts = gaugeTicks(radius, gapDeg, arcTicks, caps)
@@ -189,7 +77,7 @@ diff --git a/src/renderer/src/components/pages/telemetry/widgets/GaugeArc.tsx b/
  
    const safeMax = Math.max(1, scaleMax)
    const targetT = clamp(value / safeMax, 0, 1)
-@@ -236,16 +245,15 @@ export function GaugeArc({
+@@ -236,16 +245,15 @@
        {(() => {
          const nip = arcAt(radius, gapDeg, dT)
          const { px, py, pang } = place(nip.x, nip.y, nip.ang)
@@ -216,17 +104,95 @@ diff --git a/src/renderer/src/components/pages/telemetry/widgets/GaugeArc.tsx b/
 diff --git a/src/renderer/src/components/pages/telemetry/dashboards/dash1/DashFrame.tsx b/src/renderer/src/components/pages/telemetry/dashboards/dash1/DashFrame.tsx
 --- a/src/renderer/src/components/pages/telemetry/dashboards/dash1/DashFrame.tsx
 +++ b/src/renderer/src/components/pages/telemetry/dashboards/dash1/DashFrame.tsx
-@@ -4,6 +4,7 @@ import { useLiviStore, useStatusStore } from '@store/store'
- import { type ReactNode, useEffect, useState } from 'react'
- import { DashShell } from '../../components/DashShell'
-+import { useEspaceGaugeConfig } from '../../hooks/useEspaceGaugeConfig'
- import { useVehicleTelemetry } from '../../hooks/useVehicleTelemetry'
- import {
-   FuelGauge,
-@@ -35,6 +36,16 @@ import {
- 
+@@ -17,23 +17,16 @@
+   BASE_H,
+   BASE_W,
+   CENTER_X,
+   FUEL_SEGMENTS,
+-  GAUGE_ARM_TICKS,
+   GAUGE_BAR_TOP,
+   GAUGE_BAR_W,
+-  GAUGE_GAP_DEG,
+-  GAUGE_MAJOR_COUNT,
+-  GAUGE_RADIUS,
+-  GAUGE_TICKS,
+   LEFT_RING_LEFT,
+   READOUT_DX,
+   RIGHT_RING_LEFT,
+   RING_H,
+   RING_TOP,
+   RING_W,
+-  RPM_LABELS,
+   RPM_REDLINE,
+   RPM_SCALE_MAX,
+-  SPEED_LABELS,
+   SPEED_SCALE_MAX
+ } from '../constants'
+@@ -35,5 +35,74 @@
  const clamp = (v: number, lo: number, hi: number): number => Math.max(lo, Math.min(hi, v))
  
++type EspaceGaugeConfig = {
++  radius: number
++  gapDeg: number
++  armTicks: number
++  ticks: number
++  majorCount: number
++  trailMax: number
++  tickW: number
++  tickH: number
++  majorH: number
++  labelSize: number
++  pointerW: number
++  pointerH: number
++  pointerRadius: number
++}
++
++const DEFAULT_GAUGE_CONFIG: EspaceGaugeConfig = {
++  radius: 110,
++  gapDeg: 180,
++  armTicks: 3,
++  ticks: 41,
++  majorCount: 6,
++  trailMax: 0.5,
++  tickW: 3,
++  tickH: 14,
++  majorH: 26,
++  labelSize: 15,
++  pointerW: 4,
++  pointerH: 38,
++  pointerRadius: 1.5
++}
++
++const gaugeNumber = (
++  source: Record<string, unknown>,
++  key: keyof EspaceGaugeConfig,
++  fallback: number,
++  min: number,
++  max: number,
++  integer = false
++): number => {
++  const raw = source[key]
++  if (typeof raw !== 'number' || !Number.isFinite(raw)) return fallback
++  const value = clamp(raw, min, max)
++  return integer ? Math.round(value) : value
++}
++
++const sanitizeGaugeConfig = (source: Record<string, unknown>): EspaceGaugeConfig => ({
++  radius: gaugeNumber(source, 'radius', 110, 80, 145),
++  gapDeg: gaugeNumber(source, 'gapDeg', 180, 120, 240),
++  armTicks: gaugeNumber(source, 'armTicks', 3, 0, 8, true),
++  ticks: gaugeNumber(source, 'ticks', 41, 11, 81, true),
++  majorCount: gaugeNumber(source, 'majorCount', 6, 2, 10, true),
++  trailMax: gaugeNumber(source, 'trailMax', 0.5, 0, 1),
++  tickW: gaugeNumber(source, 'tickW', 3, 1, 8),
++  tickH: gaugeNumber(source, 'tickH', 14, 6, 30),
++  majorH: gaugeNumber(source, 'majorH', 26, 12, 50),
++  labelSize: gaugeNumber(source, 'labelSize', 15, 10, 28),
++  pointerW: gaugeNumber(source, 'pointerW', 4, 2, 12),
++  pointerH: gaugeNumber(source, 'pointerH', 38, 18, 70),
++  pointerRadius: gaugeNumber(source, 'pointerRadius', 1.5, 0, 6)
++})
++
 +const scaleLabels = (max: number, count: number, divisor = 1): string[] =>
 +  Array.from({ length: Math.max(2, count) }, (_, index) => {
 +    const value = (max * index) / Math.max(1, count - 1) / divisor
@@ -237,25 +203,58 @@ diff --git a/src/renderer/src/components/pages/telemetry/dashboards/dash1/DashFr
  const stageScale = (w: number, h: number): number => {
    const s = Math.min(w / BASE_W, h / BASE_H)
    return Number.isFinite(s) && s > 0 ? s : 1
-@@ -63,6 +74,7 @@ export type DashFrameProps = {
+@@ -63,5 +63,42 @@ export function DashFrame({ children, clusterFull }: DashFrameProps) {
  export function DashFrame({ children, clusterFull }: DashFrameProps) {
    const theme = useTheme()
    const { telemetry } = useVehicleTelemetry()
-+  const gaugeConfig = useEspaceGaugeConfig()
++  const [gaugeConfig, setGaugeConfig] = useState<EspaceGaugeConfig>(DEFAULT_GAUGE_CONFIG)
++
++  useEffect(() => {
++    let disposed = false
++    let lastRaw: string | null = null
++
++    const loadGaugeConfig = async () => {
++      try {
++        const raw = await window.app.readCustomGaugeConfig()
++        if (disposed || raw === lastRaw) return
++        lastRaw = raw
++
++        if (!raw.trim()) {
++          setGaugeConfig(DEFAULT_GAUGE_CONFIG)
++          return
++        }
++
++        const parsed = JSON.parse(raw) as unknown
++        if (typeof parsed !== 'object' || parsed === null || Array.isArray(parsed)) {
++          throw new Error('gauge config root must be an object')
++        }
++
++        setGaugeConfig(sanitizeGaugeConfig(parsed as Record<string, unknown>))
++      } catch (error) {
++        console.warn('[custom-ui] unable to load espace-gauges.json:', error)
++      }
++    }
++
++    void loadGaugeConfig()
++    const timer = window.setInterval(() => void loadGaugeConfig(), 1000)
++
++    return () => {
++      disposed = true
++      window.clearInterval(timer)
++    }
++  }, [])
++
    const isClusterDash = clusterFull === true
    const setClusterDashActive = useStatusStore((s) => s.setClusterDashActive)
-   useEffect(() => {
-@@ -91,6 +103,9 @@ export function DashFrame({ children, clusterFull }: DashFrameProps) {
+@@ -91,4 +91,7 @@
+   const carType = useLiviStore((s) => s.settings?.carType)
    const fuelMode: 'fuel' | 'battery' = carType === CarType.Electric ? 'battery' : 'fuel'
  
 +  const speedLabels = scaleLabels(SPEED_SCALE_MAX, gaugeConfig.majorCount)
 +  const rpmLabels = scaleLabels(RPM_SCALE_MAX, gaugeConfig.majorCount, 1000)
 +
    const [scale, setScale] = useState(() => stageScale(window.innerWidth, window.innerHeight))
-   const [sidePush, setSidePush] = useState(() =>
-     stagePush(window.innerWidth, stageScale(window.innerWidth, window.innerHeight))
-@@ -141,7 +156,11 @@ export function DashFrame({ children, clusterFull }: DashFrameProps) {
- 
+@@ -141,4 +141,7 @@
    return (
      <DashShell>
 -      <Box sx={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
@@ -264,10 +263,7 @@ diff --git a/src/renderer/src/components/pages/telemetry/dashboards/dash1/DashFr
 +        sx={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}
 +      >
          {/* Normal dash: a plain dark backdrop. Either cluster mode drops it so the plane shows. */}
-         {!isClusterDash && (
-           <Box sx={{ position: 'absolute', inset: 0, backgroundColor: clusterBg }} />
-@@ -174,19 +193,28 @@ export function DashFrame({ children, clusterFull }: DashFrameProps) {
-             <Box sx={{ position: 'absolute', inset: 0, pointerEvents: 'none' }}>
+@@ -174,16 +174,24 @@
                <GaugeArc
                  value={speedKph}
                  scaleMax={SPEED_SCALE_MAX}
@@ -303,9 +299,7 @@ diff --git a/src/renderer/src/components/pages/telemetry/dashboards/dash1/DashFr
 -                shadowColor={calShadowColor}
 +                shadowColor={`var(--gauge-shadow, ${calShadowColor})`}
                />
-             </Box>
-             <Box
-@@ -224,20 +252,29 @@ export function DashFrame({ children, clusterFull }: DashFrameProps) {
+@@ -224,18 +224,26 @@
                <GaugeArc
                  value={rpm}
                  scaleMax={RPM_SCALE_MAX}
@@ -343,5 +337,3 @@ diff --git a/src/renderer/src/components/pages/telemetry/dashboards/dash1/DashFr
 -                shadowColor={calShadowColor}
 +                shadowColor={`var(--gauge-shadow, ${calShadowColor})`}
                />
-             </Box>
-             <Box
