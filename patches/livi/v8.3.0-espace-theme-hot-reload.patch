@@ -1,0 +1,85 @@
+diff --git a/src/main/ipc/settings.ts b/src/main/ipc/settings.ts
+--- a/src/main/ipc/settings.ts
++++ b/src/main/ipc/settings.ts
+@@ -46,16 +46,25 @@ export function registerSettingsIpc(runtimeState: runtimeStateProps) {
+ 
+   registerIpcHandle('app:getVersion', () => app.getVersion())
+ 
+   registerIpcHandle('app:readCustomCss', async () => {
+-    const file = join(app.getPath('userData'), 'custom', 'espace-ui.css')
+-    try {
+-      return await readFile(file, 'utf8')
+-    } catch (error) {
+-      const code = (error as NodeJS.ErrnoException)?.code
+-      if (code !== 'ENOENT') {
+-        console.warn(`[custom-ui] unable to read ${file}:`, error)
++    const customDir = join(app.getPath('userData'), 'custom')
++    const files = ['espace-ui.css', 'espace-theme.css']
++    const chunks: string[] = []
++
++    for (const name of files) {
++      const file = join(customDir, name)
++      try {
++        chunks.push(await readFile(file, 'utf8'))
++      } catch (error) {
++        const code = (error as NodeJS.ErrnoException)?.code
++        if (code !== 'ENOENT') {
++          console.warn(`[custom-ui] unable to read ${file}:`, error)
++        }
+       }
+-      return ''
+     }
++
++    return chunks.join('\n\n')
+   })
+ 
+   registerIpcHandle('app:listDisplayModes', () => listHostOutputModes())
+diff --git a/src/renderer/src/main.tsx b/src/renderer/src/main.tsx
+--- a/src/renderer/src/main.tsx
++++ b/src/renderer/src/main.tsx
+@@ -21,14 +21,22 @@ import { AppContext, type AppContextProps } from './context'
+ import './i18n'
+ import { getWindowRole } from './utils/windowRole'
+ 
++let lastCustomCss: string | null = null
++
+ async function loadCustomCss(): Promise<void> {
+   try {
+     const css = await window.app.readCustomCss()
+-    if (!css.trim()) return
++    if (css === lastCustomCss) return
++    lastCustomCss = css
+ 
+     let style = document.getElementById('espace-custom-ui') as HTMLStyleElement | null
++    if (!css.trim()) {
++      style?.remove()
++      return
++    }
++
+     if (!style) {
+       style = document.createElement('style')
+       style.id = 'espace-custom-ui'
+       document.head.appendChild(style)
+@@ -39,6 +47,15 @@ async function loadCustomCss(): Promise<void> {
+   }
+ }
+ 
++function startCustomCssHotReload(): () => void {
++  const timer = window.setInterval(() => {
++    void loadCustomCss()
++  }, 1000)
++
++  return () => window.clearInterval(timer)
++}
++
+ const role = getWindowRole()
+ if (role === 'main') {
+   initUiBreatheClock()
+@@ -115,5 +132,8 @@ const root = ReactDOM.createRoot(document.getElementById('root') as HTMLElement)
+ 
+ void loadCustomCss().finally(() => {
+   root.render(<Root />)
++
++  // The main vehicle UI watches the external theme and applies changes without restarting LIVI.
++  if (role === 'main') startCustomCssHotReload()
+ })
