@@ -1,4 +1,7 @@
 {
+  "style": "oem",
+  "pointerMode": "arc",
+  "tickMode": "line",
   "radius": 110,
   "gapDeg": 180,
   "armTicks": 3,
@@ -9,7 +12,19 @@
   "tickH": 14,
   "majorH": 26,
   "labelSize": 15,
-  "pointerW": 4,
-  "pointerH": 38,
-  "pointerRadius": 1.5
+  "tickRadius": 1.2,
+  "dotRadius": 2,
+  "arcPointerW": 4,
+  "arcPointerH": 38,
+  "arcPointerRadius": 1.5,
+  "needleInner": 0.35,
+  "needleOuter": 0.96,
+  "needleWidth": 4,
+  "needleCap": "round",
+  "hubRadius": 0,
+  "hubOpacity": 0,
+  "ringWidth": 0,
+  "ringOpacity": 0,
+  "readoutDx": 34,
+  "readoutSize": 96
 }
