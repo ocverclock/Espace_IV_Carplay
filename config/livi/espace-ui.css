@@ -9,6 +9,13 @@
   --espace-rule: rgba(255, 255, 255, 0.10);
   --espace-alert: #ffb84d;
 
+  /* Compteurs Dash1 / Dash2 / Dash3 */
+  --gauge-scale: #6f747b;
+  --gauge-major: #c4c8ce;
+  --gauge-pointer: #f4f5f6;
+  --gauge-redline: #ff4d4d;
+  --gauge-shadow: rgba(0, 0, 0, 0.55);
+
   /* Écran d'attente */
   --wait-clock-size: clamp(5.2rem, 12vw, 8.5rem);
   --wait-clock-weight: 300;
@@ -28,6 +35,12 @@
   font-family: var(--espace-font-family) !important;
 }
 
+/* ---------- Dash1 / Dash2 / Dash3 ---------- */
+
+.espace-gauge-dash,
+.espace-gauge-dash .MuiTypography-root {
+  font-family: var(--espace-font-family) !important;
+}
 
 /* ---------- Dash4 Espace IV ---------- */
 
