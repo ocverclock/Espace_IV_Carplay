@@ -62,20 +62,48 @@ Document de référence : `docs/MFI_WIRING.md`.
 
 ### CAN
 
-Le CSW-2000R est maintenant traité comme un nœud CAN à conserver mais à **isoler du réseau multimédia Renault**.
+Le CSW-2000R est traité comme un nœud CAN à conserver mais à **isoler du réseau multimédia Renault**.
 
-Architecture minimale visée :
+La nouvelle architecture privilégie les contrôleurs TWAI natifs de l'ESP32 pour le CAN classique :
 
 ```text
-Pi SPI → MCP2518FD #1 → CAN privé 500 kbit/s → CSW-2000R
-Pi SPI → MCP2518FD #2 → CAN véhicule
+CSW privé 500 kbit/s
+       │
+       ▼
+transceiver #1
+       │
+       ▼
+TWAI0 ─────────┐
+               │
+           ESP32-C6 ── UART bidirectionnel ── Raspberry Pi 4
+               │
+TWAI1 ─────────┘
+       ▲
+       │
+transceiver #2
+       ▲
+       │
+CAN véhicule
 ```
 
-Le bus privé CSW ne doit pas être ponté directement vers le CAN OEM. Les commandes du CSW sont ainsi exclusives au Raspberry Pi.
+Principes :
 
-Si deux réseaux véhicule distincts doivent être écoutés simultanément en plus du bus privé CSW, un troisième contrôleur CAN ou un troisième footprint optionnel devra être ajouté au PCB final.
+- un bus CAN physique = un contrôleur TWAI + un transceiver ;
+- un même bus peut transporter les messages de nombreux calculateurs ;
+- ESP32 classique : un canal TWAI ;
+- ESP32-C6 : deux contrôleurs TWAI matériels, candidat pour deux bus simultanés ;
+- liaison C6 ↔ Pi : UART direct prioritaire, USB CDC alternatif ;
+- le Pi reste responsable de la logique haut niveau, de LIVI et de la télémétrie ;
+- l'ESP32 gère le temps réel CAN, ACK, réception, émission contrôlée et erreurs ;
+- le bus privé CSW ne doit jamais être ponté directement vers le CAN OEM.
 
-L’écoute passive précède toute émission active sur les réseaux véhicule.
+Le module MCP2518FD + ATA6563 acheté reste une solution de secours / extension, notamment si un troisième bus ou CAN-FD devient nécessaire.
+
+L'écoute passive précède toute émission active sur les réseaux véhicule.
+
+Documents :
+- `docs/CAN_GATEWAY_ESP32.md`
+- `docs/CAN_RESEARCH.md`
 
 ### K-Line
 
@@ -117,8 +145,9 @@ ACC/contact pilote une logique de shutdown propre et de coupure temporisée.
 - Linux/LIVI : interface utilisateur, CarPlay, audio, caméra, services haut niveau ;
 - RP2040 : entrées physiques déterministes et HID ;
 - MFi : authentification Apple uniquement ;
-- CAN privé CSW : commandes centrales Xanavi vers le Pi ;
-- CAN véhicule : télémétrie / intégration véhicule ;
+- ESP32-C6 / TWAI : passerelle temps réel CAN classique ;
+- CAN privé CSW : commandes centrales Xanavi vers la passerelle ;
+- CAN véhicule : télémétrie / intégration véhicule vers le Pi ;
 - étage d’alimentation : protections, démarrage/arrêt et rails propres.
 
 Le Raspberry ne doit pas dépendre du RP2040 pour afficher la caméra si une stratégie de secours plus robuste est nécessaire. Cette séparation sera réévaluée lors du prototype caméra.
