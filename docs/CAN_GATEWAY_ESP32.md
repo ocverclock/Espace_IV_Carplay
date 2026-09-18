@@ -25,7 +25,7 @@ ESP32 TWAI TX/RX
       |
       v
 transceiver 3,3 V
-(SN65HVD230 ou équivalent automobile à valider)
+(SN65HVD230 pour prototype ; équivalent automobile à valider pour le PCB final)
       |
       +-- CAN-H
       +-- CAN-L
@@ -189,3 +189,30 @@ Pour le CSW et les bus CAN classiques connus de l'Espace IV, il n'est pas néces
 5. confirmer ACK + réception de `0x681` ;
 6. cartographier les commandes du CSW ;
 7. seulement ensuite câbler TWAI1 sur un deuxième bus.
+
+
+## Module SN65HVD230 de prototype documenté
+
+Le module utilisateur reçu/documenté expose :
+
+```text
+3.3V
+GND
+RX
+TX
+CANH
+CANL
+```
+
+Câblage :
+
+```text
+TWAI_TX -> TX
+TWAI_RX <- RX
+3V3     -> 3.3V
+GND     -> GND
+```
+
+La terminaison 120 Ω semble commutable par cavalier ; la vérifier au multimètre avant usage.
+
+Document : `docs/SN65HVD230_MODULE.md`.
