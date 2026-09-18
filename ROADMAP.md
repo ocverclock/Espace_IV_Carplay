@@ -21,23 +21,37 @@
 - [x] identifier `IC3` : Philips/NXP `PCA82C250`
 - [x] protocole physique CSW : **CAN confirmé**
 - [x] identifier polarité : `CN1-5/6 = CANH`, `CN1-11/12 = CANL`
-- [ ] mesurer éventuelle terminaison entre CANH et CANL
-- [ ] identifier alimentation d'entrée et rail 5 V
-- [ ] identifier exactement MCU NEC
-- [ ] suivre TXD/RXD entre PCA82C250 et MCU
-- [ ] première alimentation labo limitée en courant
-- [ ] déterminer bitrate CAN
-- [ ] capturer trames au repos / boutons / joystick
-- [ ] documenter IDs et payloads
+- [x] mesurer terminaison : `~37 kΩ`, donc pas de 120 Ω locale
+- [x] identifier alimentation d'entrée et rail 5 V
+- [x] première alimentation labo validée
+- [x] suivre TXD/RXD du PCA82C250 avec analyseur logique
+- [x] déterminer bitrate CAN : **500 kbit/s**
+- [x] capturer trame au repos : `0x681 / F0 0A 0A 01 FF FF FF FF`
+- [ ] fournir ACK avec un vrai nœud CAN
+- [ ] capturer boutons / joystick / rotation
+- [ ] documenter IDs et payloads de commandes
+- [ ] déterminer si des trames entrantes sont nécessaires au réveil fonctionnel complet
+- [ ] identifier exactement MCU NEC uniquement si cela devient utile
 
 ### M1.2 — commande au volant
-- [ ] recevoir `7701049643`
-- [ ] photos / inspection
-- [ ] cartographie 6 broches commodo
-- [ ] décodage complet de la molette
+- [x] recevoir `7701049643`
+- [x] photos / inspection
+- [x] cartographie 6 broches commodo
+- [x] décodage complet de la molette
+- [x] prototype RP2040-Zero validé sur banc
+- [ ] sortie USB HID vers Raspberry Pi
 
 ### M1.3 — interface Linux
 - [ ] prototype USB HID sur RP2040
+
+### M1.4 — passerelle CAN ESP32/TWAI
+- [ ] identifier la carte ESP32-C6 disponible
+- [ ] valider TWAI0 avec un transceiver 3,3 V sur le CSW
+- [ ] confirmer ACK du CSW et réception stable de `0x681`
+- [ ] valider TWAI1 sur un second bus
+- [ ] définir protocole UART binaire C6 ↔ Raspberry Pi
+- [ ] implémenter réception + émission bidirectionnelle
+- [ ] exposer les données au service télémétrie Linux
 
 ## M2 — LIVI / CarPlay sur établi
 
@@ -149,7 +163,8 @@ Contenu :
 - [ ] RP2040
 - [ ] MFi
 - [ ] load-switch MFi
-- [ ] double CAN
+- [ ] passerelle CAN/TWAI ou connecteur vers module C6
+- [ ] transceiver(s) CAN selon topologie réellement mesurée
 - [ ] K-Line optionnelle
 - [ ] reverse
 - [ ] ACC
@@ -158,12 +173,15 @@ Contenu :
 - [ ] points de test
 
 ## M8 — CAN Renault
-- [ ] topologie bus
-- [ ] écoute passive
+- [x] confirmer qu'un CAN multimédia distinct existe dans l'architecture Espace IV
+- [ ] mesurer OBD 6/14 hors tension puis en listen-only
+- [ ] mesurer OBD 12/13 hors tension puis en listen-only
+- [ ] déterminer bitrate et IDs de chaque paire
+- [ ] établir la topologie bus réellement accessible sur notre véhicule
 - [ ] logs
 - [ ] corrélation trames/événements
 - [x] valider le chemin logiciel télémétrie LIVI avec données simulées
-- [ ] brancher le futur décodeur CAN réel sur le même contrat télémétrie
+- [ ] brancher la passerelle ESP32/TWAI réelle sur le même contrat télémétrie
 - [ ] requêtes diagnostic uniquement si nécessaire
 
 ## M9 — Intégration véhicule / mise en service
