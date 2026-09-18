@@ -211,15 +211,37 @@ Le premier module reçu servira au banc avec l'ESP32.
 Câblage SPI proposé, ESP32 WROOM / VSPI classique :
 
 ```text
-ESP32 GPIO18 SCK  ─────► module SCK
-ESP32 GPIO23 MOSI ─────► module SDI
-ESP32 GPIO19 MISO ◄───── module SDO
-ESP32 GPIO5  CS   ─────► module nCS
-ESP32 GPIO27 INT  ◄───── module INT
-ESP32 GND          ───── module GND
+ESP32 GPIO5  CS   ─────► P1-1  nCS
+ESP32 GPIO19 MISO ◄───── P1-3  SDO
+ESP32 GPIO23 MOSI ─────► P1-5  SDI
+ESP32 GPIO18 SCK  ─────► P1-7  SCK
+ESP32 GPIO27 INT  ◄───── P1-9  INT
+ESP32 GND          ─────► P1-8 ou P1-11 GND
 ```
 
-Alimentation module : la notice autorise `3,3 V à 5 V` et annonce une compatibilité ESP32. **Vérifier la sérigraphie exacte du module reçu avant première alimentation et ne jamais relier simultanément deux entrées d'alimentation.**
+Brochage P1 complet du module Jessinie reçu :
+
+```text
+1 nCS
+2 CLK
+3 SDO / MISO
+4 INT0
+5 SDI / MOSI
+6 INT1
+7 SCK
+8 GND
+9 INT
+10 3V3
+11 GND
+12 5V
+```
+
+`P2` est le cavalier de configuration lié à l'alimentation / logique 5 V selon la notice.  
+`P3` commande la résistance de terminaison CAN intégrée : **ponté = 120 Ω activée ; ouvert = 120 Ω désactivée**.
+
+Documentation spécifique du module : `docs/MCP2518FD_MODULE_JESSINIE.md`.
+
+Alimentation module : utiliser la configuration correspondant au niveau logique de l'ESP32 et **ne jamais relier simultanément deux entrées d'alimentation**.
 
 Côté CAN :
 
@@ -254,7 +276,7 @@ Résistance attendue hors tension aux bornes du bus complet : environ `60 Ω`.
 
 Sur le banc actuel, deux `220 Ω` en parallèle donnent environ `110 Ω` et peuvent servir temporairement d'une des terminaisons.
 
-Avant de câbler la seconde terminaison, mesurer le module MCP2518FD reçu entre H et L pour vérifier s'il possède déjà une résistance 120 Ω intégrée.
+Le module Jessinie possède une terminaison intégrée commutable par `P3`. Avant d'ajouter une résistance externe, mesurer H ↔ L hors tension et vérifier l'état de `P3` : ponté = 120 Ω activée ; ouvert = terminaison désactivée.
 
 ## 6. Câblage final Raspberry Pi 4 → MCP2518FD
 
