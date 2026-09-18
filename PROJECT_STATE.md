@@ -1,6 +1,27 @@
 # Espace IV Modernisation Multimédia — PROJECT_STATE
 
-## Checkpoint actif — 2026-09-10 : LIVI installé et démarré
+## Checkpoint actif — 2026-09-18 : architecture CAN simplifiée autour de TWAI
+
+Acquis depuis le dernier checkpoint :
+
+- CSW-2000R confirmé en CAN classique `500 kbit/s` ;
+- trame idle mesurée : `0x681 / DLC 8 / F0 0A 0A 01 FF FF FF FF` ;
+- le CSW seul ne possède pas de terminaison 120 ohms fixe (`~37 kOhm` mesurés H↔L) ;
+- le module Jessinie `MCP2518FD + ATA6563` est documenté, mais la communication SPI n'a pas été démontrée ; aucune activité `INT` vue pendant le trafic CSW ;
+- cette voie est dépriorisée sans conclure que le module est défectueux ;
+- nouvelle voie active : contrôleur `TWAI` natif ESP32 + un transceiver par bus CAN physique ;
+- ESP32 classique : un bus CAN ;
+- ESP32-C6 : deux contrôleurs TWAI matériels, candidat pour `CSW privé + CAN véhicule` ;
+- liaison C6 ↔ Raspberry Pi : UART bidirectionnel direct prioritaire ; USB CDC reste une alternative ;
+- l'OBD ne doit pas être supposé exposer tous les CAN : 6/14 et 12/13 seront mesurés séparément avant de figer le nombre final de canaux.
+
+Documents de référence :
+
+- `docs/CAN_GATEWAY_ESP32.md`
+- `docs/CAN_RESEARCH.md`
+- `docs/DECISIONS.md` D018 à D022
+
+### Checkpoint précédent — 2026-09-10 : LIVI installé et démarré
 
 - Banc Raspberry Pi 4 sur microSD, image avec bureau préparée avec Raspberry Pi Imager 1.7.2.
 - SSH fonctionnel : `ssh pi@raspberry-carplay.local`. Aucun écran physique disponible pour le moment.
@@ -20,7 +41,7 @@
 - Restent à valider : image réelle, navigation, vidéo projetée, audio/micro/Siri, MFi et CarPlay, puis HID. Aucun de ces résultats ne doit être déduit de la seule présence des processus.
 
 
-Dernière mise à jour : 2026-09-10
+Dernière mise à jour : 2026-09-18
 
 Ce fichier est le **checkpoint global et la source de vérité principale** du projet.
 
@@ -340,40 +361,52 @@ Documents :
 ## 6. Architecture cible
 
 ```text
-                                 iPhone
-                                   │
-                          CarPlay filaire/Wi-Fi
-                                   │
-                          ┌────────▼─────────┐
-                          │ Raspberry Pi 4   │
-                          │ Trixie + LIVI    │
-                          └───┬──────┬───────┘
-                              │      │
-                            HDMI    Audio
-                              │      │
-                          écran 7"   └──► audio Renault
+                                  iPhone
+                                    │
+                           CarPlay filaire/Wi-Fi
+                                    │
+                           ┌────────▼─────────┐
+                           │ Raspberry Pi 4   │
+                           │ Trixie + LIVI    │
+                           └───┬──────┬────────┘
+                               │      │
+                             HDMI    Audio
+                               │      │
+                           écran 7"   └──► audio Renault
+                               │
+                               │ UART bidirectionnel
+                               ▼
+                         ┌───────────────┐
+                         │ ESP32-C6      │
+                         │ CAN gateway   │
+                         ├──────┬────────┤
+                         │TWAI0 │ TWAI1  │
+                         └──┬───┴───┬────┘
+                            │       │
+                      transceiver transceiver
+                            │       │
+                   bus privé CSW  CAN véhicule
 
-                         GPIO / USB / SPI
-                                   │
-        ┌──────────────────────────▼─────────────────────────┐
-        │             Espace IV Interface Board             │
-        │                                                   │
-        │ RP2040                                            │
-        │  ├─ commande au volant                            │
-        │  ├─ reverse                                       │
-        │  └─ ACC / illumination                            │
-        │                                                   │
-        │ 3.3 V → load-switch → MFI343S00177-L              │
-        │ GPIO21 → EN                                       │
-        │ GPIO19 SDA / GPIO26 SCL                           │
-        │                                                   │
-        │ MCP2518FD #1 + transceiver → CAN véhicule         │
-        │ MCP2518FD #2 + transceiver → CAN secondaire       │
-        │ L9637D optionnel → K-Line                         │
-        └───────────────────────────────────────────────────┘
+Commande au volant -> RP2040 -> USB HID -> Raspberry Pi
+                         └-> proxy contacts OEM VOL+/VOL-
+
+MFi :
+Pi 3.3 V -> load-switch -> MFI343S00177-L
+GPIO21 -> EN
+GPIO19 SDA / GPIO26 SCL
 ```
 
-Le CSW étant confirmé CAN, la stratégie prioritaire est de **conserver son électronique d’origine et décoder ses trames**.
+Règles CAN :
+
+- un bus CAN physique = un contrôleur TWAI + un transceiver ;
+- un même bus peut contenir de nombreux calculateurs ;
+- le CSW reste isolé sur un bus privé à 500 kbit/s ;
+- l'ESP32-C6 est candidat pour deux bus CAN classiques simultanés ;
+- le Raspberry reste la couche applicative ; l'ESP32 assure le temps réel CAN ;
+- UART direct est privilégié entre C6 et Pi pour éviter un hub USB ;
+- le MCP2518FD acheté reste disponible comme extension / secours, pas comme dépendance critique.
+
+Le CSW étant confirmé CAN, la stratégie prioritaire reste de **conserver son électronique d’origine et décoder ses trames**.
 
 Fallback : RP2040 interne uniquement si le protocole Xanavi devient trop coûteux à reproduire.
 
@@ -500,18 +533,33 @@ Document : `docs/REVERSE_CAMERA.md`.
 
 ## 13. CAN véhicule / architecture finale
 
-Architecture finale envisagée :
+Architecture de travail :
 
 ```text
-Pi SPI → MCP2518FD #1 → transceiver → CAN véhicule
-Pi SPI → MCP2518FD #2 → transceiver → CAN secondaire / multimédia
+ESP32-C6
+  ├─ TWAI0 -> transceiver -> bus privé CSW
+  └─ TWAI1 -> transceiver -> CAN véhicule
+        │
+        └─ UART bidirectionnel -> Raspberry Pi
 ```
 
-La présence du PCA82C250 dans le CSW confirme l’intérêt du second canal CAN pour le réseau multimédia.
+L'ESP32-C6 possède deux contrôleurs TWAI matériels. Cela suffit si le besoin final est limité à :
 
-Règles : écoute passive d’abord, aucune émission active avant compréhension, aucune terminaison supplémentaire sans validation de la topologie.
+1. bus privé CSW ;
+2. un bus CAN véhicule.
 
-Document : `docs/CAN_RESEARCH.md`.
+Le nombre de réseaux CAN réellement utiles n'est pas encore figé. La prise OBD doit être mesurée :
+
+- pins 6/14 : CAN diagnostic/véhicule attendu ;
+- pins 12/13 : piste CAN2 / multimédia rapportée par des sources externes, **non encore mesurée sur notre véhicule**.
+
+Si trois bus indépendants sont finalement nécessaires simultanément, alors seulement ajouter un contrôleur externe ou un second MCU.
+
+Règles : écoute passive d'abord sur les réseaux véhicule, aucune émission active avant compréhension, aucune terminaison supplémentaire sans validation de la topologie.
+
+Documents :
+- `docs/CAN_GATEWAY_ESP32.md`
+- `docs/CAN_RESEARCH.md`
 
 ## 14. Alimentation automobile
 
@@ -528,7 +576,7 @@ Document : `docs/POWER.md`.
 
 ## 15. PCB final
 
-Objectif : une carte unique Espace IV intégrant RP2040, MFi + load-switch, double CAN, K-Line optionnelle, reverse, ACC/illumination, protections, connecteurs et points de test.
+Objectif : une carte unique Espace IV intégrant RP2040, MFi + load-switch, passerelle CAN/TWAI, transceivers nécessaires, K-Line optionnelle, reverse, ACC/illumination, protections, connecteurs et points de test. Le nombre final de canaux CAN ne sera figé qu'après mesure OBD.
 
 Ne pas lancer PCB V1 tant que commandes, MFi, alimentation et stratégie écran ne sont pas suffisamment validés.
 
@@ -556,17 +604,20 @@ power stage = BENCH VALIDATED
 CN1-9 = rheostat / illumination DOCUMENTED
 CN1-10 = side-light + DOCUMENTED
 Q1 / IC1 exact topology = TBD / non-blocking
+CAN bitrate = 500000 bit/s MEASURED
+idle ID = 0x681
+idle DLC = 8
+idle payload = F0 0A 0A 01 FF FF FF FF
 ```
 
 Prochaines étapes :
 
-1. confirmer `PCA82C250 pin 3 ≈ 5 V` ;
-2. relever la consommation totale du module à `12,5 V` ;
-3. préparer la terminaison CAN de banc ;
-4. déterminer bitrate CAN ;
-5. capturer trames au repos ;
-6. capturer boutons / joystick / rotation ;
-7. cartographier Q1/IC1 plus tard si utile.
+1. câbler un transceiver 3,3 V sur TWAI ESP32 ;
+2. valider que le nœud CAN fournit l'ACK au CSW ;
+3. vérifier réception stable de `0x681` ;
+4. capturer chaque bouton / joystick / rotation ;
+5. déterminer si le CSW attend ensuite des trames entrantes pour un réveil fonctionnel complet ;
+6. cartographier Q1/IC1 plus tard uniquement si utile.
 
 ### P0-B — banc LIVI / CarPlay
 
@@ -601,11 +652,14 @@ Autres P1 : écran final, caméra, audio, alimentation automobile.
 
 ### P2
 
-- PCB V1 ;
-- double CAN prototype.
+- prototype CAN/TWAI avec transceiver ;
+- identifier et valider la carte ESP32-C6 disponible ;
+- mesurer OBD 6/14 puis 12/13 en écoute passive ;
+- PCB V1 après validation du nombre réel de bus.
 
 ### P3
 
+- troisième canal CAN uniquement si la topologie mesurée le justifie ;
 - télémétrie CAN avancée ;
 - ELS27 uniquement si nécessaire.
 
@@ -613,17 +667,22 @@ Autres P1 : écran final, caméra, audio, alimentation automobile.
 
 Voir `BOM.md`.
 
-Actuellement : écran 7" à sélectionner, RP2040 prototype, MFi `MFI343S00177-L`, passifs MFi, load-switch MFi et petit matériel de laboratoire.
+Actuellement : écran 7" à sélectionner, MFi `MFI343S00177-L`, passifs MFi, load-switch MFi, un ou deux transceivers CAN 3,3 V de prototype, et petit matériel de laboratoire. Vérifier d'abord si un ESP32-C6 est déjà disponible.
 
 ## 18. Prochaine action concrète
 
-### CSW
+### CSW / CAN
 
-Le premier état d'alimentation exploitable est acquis : `12,5 V` sur l'alimentation principale, wake `34HU` via résistance série, et `5,0 V` sur `C3`.
+Le CSW est déjà décodé électriquement à `500 kbit/s` et sa baseline `0x681` est connue.
 
-Prochaine action : confirmer `PCA82C250 pin 3 ≈ 5 V`, relever la consommation du module si possible, puis préparer l'écoute CAN avec terminaison de banc correcte et recherche du bitrate.
+Prochaine action :
 
-Pour isoler complètement le wake, mesurer à l'occasion `C3` avec `CN1-1` déconnecté puis reconnecté, alimentation principale maintenue.
+1. identifier la carte ESP32-C6 disponible ;
+2. si le C6 n'est pas immédiatement disponible, utiliser l'ESP32 classique avec un transceiver sur TWAI0 ;
+3. fournir l'ACK au CSW ;
+4. vérifier que les retransmissions massives disparaissent ;
+5. cartographier les commandes du CSW ;
+6. ensuite mesurer les bus OBD 6/14 et 12/13 en listen-only.
 
 ### Commande au volant
 
