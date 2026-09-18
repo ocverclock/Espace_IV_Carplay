@@ -5,6 +5,7 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 ## Statuts
 
 - `HAVE` : déjà disponible ;
+- `CHECK` : probablement disponible / présence à confirmer ;
 - `BOUGHT` : acheté pour le projet ;
 - `SELECT` : choix/achat à court terme ;
 - `DESIGN` : architecture définie mais composant exact à choisir ;
@@ -15,9 +16,11 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 |---|---|---:|---|---|---:|
 | Raspberry Pi 4 | existant | 1 | HAVE | P0 | 0 € |
 | ESP32 banc | ESP-WROOM-32 / carte de développement existante | 1 | HAVE | P0 | 0 € |
+| ESP32-C6 passerelle | carte C6 existante à identifier précisément | 1 | CHECK | P0 | 0 € si disponible |
+| Transceiver CAN prototype | SN65HVD230 3,3 V ou équivalent | 2 | SELECT | P0 | <10 € le lot |
 | Commande centrale | Renault `8200326970`, `CSW-2000R` | 1 | BOUGHT | P0 | acheté |
 | Commande volant | Renault `7701049643`, `34442201AF` | 1 | BOUGHT | P0 | acheté |
-| CAN prototype #1 | module `MCP2518FD + ATA6563`, SPI, H/G/L | 1 | BOUGHT | P0 | acheté |
+| CAN prototype legacy | module `MCP2518FD + ATA6563`, SPI, H/G/L | 1 | BOUGHT | P3 | acheté ; conservé en secours |
 | Câble CAN automobile | paire torsadée cuivre, impédance caractéristique `120 Ω`, idéalement `2 × 0,35 mm²`, gaine automobile | 5 à 10 m | SELECT | P0 | à chiffrer |
 | Fil automobile signaux | AVSS `22 AWG / ~0,3 mm²`, 10 m par couleur : blanc, orange, vert, gris, noir, bleu, jaune | 70 m total | SELECT | P1 | panier utilisateur |
 | Fil automobile alimentation | AVSS `18 AWG / ~0,85 mm²`, rouge 10 m + noir 10 m | 20 m total | SELECT | P1 | panier utilisateur |
@@ -30,8 +33,8 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 | MFi CP3.0 | Microchip `MFI343S00177-L`, LCSC `C33770534` | 2 conseillé | SELECT | P1 | quelques € |
 | Passifs MFi | 4.7 kΩ ×2, 33 Ω ×2, 100 nF, 1 µF | 1 lot | SELECT | P1 | <5 € |
 | Commutation MFi | load-switch 3.3 V actif haut, EN compatible GPIO 3.3 V | 1 | DESIGN | P1 | <5 € |
-| CAN véhicule #2 | second MCP2518FD + transceiver automobile | 1 | WAIT | P2 | 15–30 € |
-| CAN véhicule #3 optionnel | troisième canal si CSW privé + deux réseaux véhicule requis | 1 | WAIT | P3 | 15–30 € |
+| Contrôleur CAN externe supplémentaire | MCP2518FD ou équivalent uniquement si >2 bus ou CAN-FD requis | 1 | WAIT | P3 | 15–30 € |
+| Transceiver CAN final #1/#2 | composant automobile 3,3 V à choisir après prototype | 2 | DESIGN | P2 | à chiffrer |
 | K-Line | L9637D ou équivalent | 1 | WAIT | P3 | quelques € |
 | Caméra recul | à choisir | 1 | SELECT | P1 | 20–50 € |
 | Capture vidéo | selon caméra CVBS/AHD/USB | 1 | SELECT | P1 | 10–40 € |
@@ -50,7 +53,10 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 - acheter au moins deux MFi si le surcoût reste négligeable, le boîtier étant petit et délicat à souder ;
 - ne pas figer le load-switch MFi avant mesure du courant du prototype ;
 - aucune interface diagnostic à ~150 € tant qu’elle n’est pas indispensable ;
-- le premier module CAN MCP2518FD est acheté pour le banc CSW ;
+- la voie CAN active pour le prototype est TWAI natif ESP32 + transceiver ;
+- le module MCP2518FD acheté est conservé comme secours/extension mais ne bloque plus le projet ;
+- vérifier d'abord si l'ESP32-C6 est déjà disponible avant tout achat de MCU ;
+- un ESP32-C6 peut fournir deux contrôleurs TWAI matériels, donc deux bus CAN classiques avec deux transceivers ;
 - pour tout nouveau tronçon CAN, utiliser une vraie paire torsadée `120 Ω` ; ne pas remplacer par deux fils parallèles non torsadés dans le faisceau final ;
 - la couleur de CANH/CANL n'est pas imposée universellement par ISO 11898 : choisir une convention interne et l'étiqueter ;
 - les deux extrémités physiques d'un bus CAN doivent être terminées conformément à la topologie ; avec deux résistances de `120 Ω`, la résistance mesurée bus hors tension est voisine de `60 Ω` ;
@@ -70,7 +76,7 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 - valider le candidat d'alimentation sous charge réelle : absence d'undervoltage (`vcgencmd get_throttled`), stabilité du 5 V, température et comportement pendant démarrage moteur ;
 - placer le fusible 12 V au plus près du point de prélèvement véhicule ;
 - la coupure ACC ne doit pas supprimer brutalement le 5 V du Pi : prévoir une logique de shutdown propre puis coupure temporisée de l'alimentation ;
-- ne pas commander le troisième CAN avant d’avoir prouvé le besoin de deux réseaux véhicule simultanés en plus du CSW privé ;
+- ne pas acheter de troisième canal CAN avant d’avoir mesuré OBD 6/14 et 12/13 et prouvé le besoin de trois réseaux indépendants simultanés ;
 - ne pas commander l’écran avant d’avoir validé dimensions extérieures, luminosité et connectique ;
 - pour le PCB MFi final, préférer assemblage professionnel du DFN/XDFN.
 
@@ -78,7 +84,8 @@ Les prix sont des ordres de grandeur. Ne pas commander les éléments marqués `
 
 - LIVI : `docs/LIVI_CARPLAY_SETUP.md`
 - câblage MFi : `docs/MFI_WIRING.md`
-- module CAN : `docs/MCP2518FD_MODULE.md`
+- passerelle CAN active : `docs/CAN_GATEWAY_ESP32.md`
+- module MCP2518FD legacy : `docs/MCP2518FD_MODULE_JESSINIE.md`
 - commande volant : `docs/STEERING_REMOTE.md`
 - câblage interface : `hardware/espace_iv_interface_v1/WIRING_DRAFT.md`
 - source fournisseur MFi : LCSC `C33770534`
