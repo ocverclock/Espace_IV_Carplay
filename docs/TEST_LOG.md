@@ -2,6 +2,59 @@
 
 Journal chronologique des mesures et observations réalisées sur notre matériel.
 
+## 2026-09-18 — Module Jessinie MCP2518FD / test INT avec PulseView
+
+Documentation fournisseur du module archivée dans `docs/MCP2518FD_MODULE_JESSINIE.md`.
+
+Brochage P1 confirmé par la notice fournie :
+
+```text
+1 nCS
+2 CLK
+3 SDO / MISO
+4 INT0
+5 SDI / MOSI
+6 INT1
+7 SCK
+8 GND
+9 INT
+10 3V3
+11 GND
+12 5V
+```
+
+Configuration cavaliers :
+
+```text
+P2 = sélection liée à l'alimentation / logique 5 V selon notice
+P3 ponté = terminaison CAN 120 ohms activée
+P3 ouvert = terminaison CAN 120 ohms désactivée
+```
+
+Bornier CAN :
+
+```text
+1 G
+2 H
+3 L
+```
+
+Essai PulseView :
+
+```text
+D0 = CSW PCA82C250 TXD
+D5 = CSW PCA82C250 RXD
+D4 = module P1-9 INT
+```
+
+Observation : le trafic du CSW reste visible sur D0/D5, mais `INT` reste statique sur D4 pendant la capture fournie.
+
+Conclusion : la réception par le MCP2518FD n'est pas encore démontrée. La prochaine vérification prioritaire est la communication SPI `nCS + SCK + SDI + SDO` entre ESP32 et MCP2518FD, puis la configuration de l'interruption.
+
+Statut : **USER MEASURED / CAPTURE OBSERVED — 2026-09-18**.
+
+---
+
 ## 2026-08-31 — XTOOL A30M
 
 - connexion Bluetooth Linux réussie ;
@@ -470,5 +523,4 @@ Firmware : `firmware/rp2040/steering_remote_test/steering_remote_test.ino`.
 - Connexion du RP2040 au Pi explicitement reportée par David. Le prototype boutons/mute/molette du 8 septembre reste acquis ; USB HID pas encore implémenté.
 - Prochaine étape proposée : préparer un accès au bureau à distance sans écran pour voir/configurer LIVI, en vérifiant d'abord la compatibilité Wayland et l'absence de sortie physique. Aucun accès graphique distant n'a encore été installé ou validé.
 - Restent à valider : image réelle, navigation, vidéo projetée, audio/micro/Siri, MFi et CarPlay, puis HID. Aucun de ces résultats ne doit être déduit de la seule présence des processus.
-
-Preuves : sorties terminal transmises par David (installation, processus et .xsession-errors), dont les pièces jointes Texte collé(20260910-101131).txt et Texte collé(20260910-101305).txt. Résumé des preuves enregistré ici ; pièces brutes non ajoutées au dépôt.
+- Preuves : sorties terminal transmises par David (installation, processus et .xsession-errors), dont les pièces jointes Texte collé(20260910-101131).txt et Texte collé(20260910-101305).txt. Résumé des preuves enregistré ici ; pièces brutes non ajoutées au dépôt.
