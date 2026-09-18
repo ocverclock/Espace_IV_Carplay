@@ -78,33 +78,56 @@ CN1-11 / CN1-12 = CAN-L
 
 Voir `docs/CSW2000R.md`.
 
+## Module physique reçu
+
+La documentation spécifique du module Jessinie reçu est archivée dans :
+
+`docs/MCP2518FD_MODULE_JESSINIE.md`
+
+Points désormais documentés :
+
+- P1 complet : `nCS / CLK / SDO / INT0 / SDI / INT1 / SCK / GND / INT / 3V3 / GND / 5V` ;
+- P2 : configuration liée à l'alimentation / logique 5 V ;
+- P3 : terminaison CAN intégrée, ponté = `120 Ω`, ouvert = désactivée ;
+- bornier CAN : `G / H / L`.
+
 ## Méthode de travail verrouillée
 
-### Phase 1 — écoute passive uniquement
+### Phase 1 — banc CSW isolé
 
-Le premier firmware ESP32 doit être un sniffer simple :
+Sur le banc, le CSW et notre interface sont les deux seuls nœuds. Le MCP2518FD doit donc fonctionner en **Normal20B** afin de fournir l'ACK CAN, sans envoyer de trames applicatives arbitraires.
+
+Le firmware doit afficher :
 
 ```text
-LISTEN ONLY
-→ réception
+réception
 → timestamp
 → ID CAN
 → DLC
 → données hexadécimales
 ```
 
-Aucune trame applicative arbitraire ne doit être injectée pendant cette phase.
+### Phase 2 — écoute véhicule
 
-### Phase 2 — identification du bitrate
+Sur un réseau véhicule déjà actif, utiliser **ListenOnly** pour une écoute totalement passive.
+
+### Paramètres confirmés pour le CSW
+
+```text
+oscillateur module = 40 MHz
+CAN classique      = 2.0B
+bitrate CSW        = 500000 bit/s
+baseline           = ID 0x681, DLC 8
+payload idle       = F0 0A 0A 01 FF FF FF FF
+```
 
 Avant de chercher les boutons :
 
 1. vérifier alimentation du module ;
 2. vérifier SPI ESP32 ↔ MCP2518FD ;
-3. configurer correctement l'horloge **40 MHz** ;
-4. vérifier CAN-H/CAN-L ;
-5. déterminer / confirmer le bitrate ;
-6. confirmer que des trames valides sont reçues.
+3. vérifier CAN-H/CAN-L et masse commune ;
+4. vérifier l'état de P3 / terminaison ;
+5. confirmer les interruptions/réceptions du MCP2518FD.
 
 ### Phase 3 — reverse engineering du CSW-2000R
 
@@ -199,12 +222,24 @@ Configuration à vérifier impérativement avant utilisation :
 
 ```text
 OSCILLATOR = 40 MHz
-MODE       = LISTEN ONLY
-CAN TYPE   = Classical CAN au départ
-BITRATE    = à déterminer / confirmer
+MODE BANC  = Normal20B
+MODE AUTO  = ListenOnly
+CAN TYPE   = Classical CAN 2.0B
+BITRATE    = 500000 bit/s
 ```
 
-Les broches SPI ESP32 et les broches `CS` / `INT` seront documentées dès validation du câblage physique.
+Brochage module utilisé sur le banc :
+
+```text
+GPIO5  -> P1-1 nCS
+GPIO19 <- P1-3 SDO
+GPIO23 -> P1-5 SDI
+GPIO18 -> P1-7 SCK
+GPIO27 <- P1-9 INT
+GND    -> P1-8/P1-11
+```
+
+Voir `docs/MCP2518FD_MODULE_JESSINIE.md` pour le brochage complet.
 
 ## Règle projet
 
