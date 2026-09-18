@@ -38,9 +38,8 @@
 **Raison :** CAN/télémétrie n’est pas la première valeur d’usage.
 
 ## D010 — Double CAN sur PCB
-**Décision :** prévoir deux canaux matériels sur le PCB final.  
-**Raison :** coût marginal faible et flexibilité de reverse engineering.  
-**Point à réévaluer :** le bus privé du CSW consomme désormais un canal dédié. Si deux réseaux véhicule distincts doivent être écoutés simultanément en plus du CSW, un troisième canal ou footprint optionnel sera nécessaire.
+**Statut : SUPERSEDED BY D018/D019.**  
+La nécessité de plusieurs bus reste vraie, mais l'implémentation n'est plus figée autour de MCP2518FD. Le nombre réel de canaux sera dimensionné après mesure de la topologie OBD/véhicule.
 
 ## D011 — Caméra de recul
 **Décision :** fait partie du cahier des charges de base.  
@@ -75,7 +74,7 @@
 
 Architecture retenue :
 
-- `CSW-2000R` isolé du CAN multimédia Renault et raccordé à un **bus CAN privé** vers un MCP2518FD du système Raspberry Pi ;
+- `CSW-2000R` isolé du CAN multimédia Renault et raccordé à un **bus CAN privé** vers la passerelle CAN du système ;
 - commande au volant `7701049643` déconnectée du décodeur OEM et lue directement par le RP2040 ;
 - aucun pont transparent entre le bus privé CSW et le CAN Renault ;
 - le RP2040 peut toutefois reproduire volontairement certaines commandes vers le chemin OEM sous forme de fermetures de contacts synthétiques.
@@ -113,3 +112,61 @@ La cible finale n'est pas le relais mécanique mais un **relais statique optique
 **Condition avant choix du relais statique :** mesurer tension, courant et éventuelle fréquence de balayage sur les lignes OEM.
 
 **Documents :** `docs/STEERING_REMOTE.md`, `docs/AUDIO_MIC.md`, `hardware/espace_iv_interface_v1/WIRING_DRAFT.md`.
+
+
+## D018 — TWAI natif prioritaire pour le CAN classique
+**Décision :** pour le reverse engineering et l'intégration des bus CAN classiques de l'Espace IV, utiliser en priorité le contrôleur TWAI natif d'un ESP32 avec un transceiver externe par bus.
+
+**Raison :** le contrôleur CAN est déjà intégré à l'ESP32 ; le MCP2518FD ajoute SPI, interruptions et une couche logicielle inutile pour un bus CAN 2.0 classique.
+
+**Conséquence :**
+- ESP32 classique = 1 bus CAN ;
+- un transceiver est requis par bus ;
+- le module MCP2518FD acheté reste disponible mais n'est plus la voie critique.
+
+**Document :** `docs/CAN_GATEWAY_ESP32.md`.
+
+## D019 — ESP32-C6 candidat passerelle CAN 2 voies
+**Décision :** si la carte ESP32-C6 disponible est confirmée, la retenir comme candidat principal pour agréger deux bus CAN classiques.
+
+**Fait matériel :** l'ESP32-C6 possède deux contrôleurs TWAI matériels (`TWAI0`, `TWAI1`). Les API ESP-IDF multi-instance permettent d'exploiter les deux contrôleurs avec un transceiver distinct par bus.
+
+**Architecture de travail :**
+
+```text
+TWAI0 -> transceiver -> bus privé CSW
+TWAI1 -> transceiver -> CAN véhicule
+ESP32-C6 <-> Raspberry Pi
+```
+
+**Limite :** CAN classique uniquement, pas CAN-FD.
+
+**Condition :** identifier la carte C6 réellement disponible et valider ses GPIO avant de figer le PCB.
+
+## D020 — Liaison CAN gateway vers Raspberry par UART direct
+**Décision :** pour un seul ESP32-C6, privilégier une liaison UART bidirectionnelle directe avec le Raspberry Pi plutôt qu'un hub USB.
+
+**Raison :** moins de matériel, liaison simple, débit largement suffisant pour deux bus CAN classiques si le protocole est binaire et correctement tamponné.
+
+**Alternative :** USB CDC pour développement ou si le câblage UART devient contraignant.
+
+**Protocole minimal à définir :** canal, timestamp, ID, flags, DLC, données, commandes d'émission et état d'erreur.
+
+## D021 — Ne pas supposer que l'OBD expose tous les CAN
+**Décision :** mesurer la topologie réelle avant de dimensionner le nombre final de canaux CAN.
+
+**État actuel :**
+- OBD 6/14 est la paire CAN diagnostic/véhicule attendue ;
+- un CAN multimédia distinct existe sur l'Espace IV ;
+- l'accès du CAN multimédia via OBD 12/13 est documenté sur des Renault et rapporté sur des Espace, mais n'est pas encore mesuré sur notre véhicule.
+
+**Impact :** aucun troisième canal CAN ne sera acheté ou routé avant le test physique des paires OBD.
+
+**Document :** `docs/CAN_RESEARCH.md`.
+
+## D022 — MCP2518FD conservé mais dépriorisé
+**Décision :** conserver le module Jessinie MCP2518FD + ATA6563 comme matériel disponible et piste de secours.
+
+**Observation :** lors du test du 2026-09-18, aucune activité n'a été observée sur `INT` alors que le CSW émettait. La communication SPI n'a pas été démontrée.
+
+**Conclusion :** ne pas déclarer le module défectueux sans test SPI isolé, mais ne pas bloquer le projet dessus.
