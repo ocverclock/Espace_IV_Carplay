@@ -4,7 +4,13 @@ Date de décision : `2026-09-17`
 
 ## Statut
 
-**DECISION / ARCHITECTURE RETENUE**
+**LEGACY / ARCHITECTURE DÉPRIORISÉE — 2026-09-18**
+
+Cette voie reste documentée parce que le matériel a été acheté et testé, mais elle n'est plus l'architecture CAN principale.
+
+Architecture active : `docs/CAN_GATEWAY_ESP32.md`.
+
+Motif : pour le CAN classique, le contrôleur TWAI est déjà intégré à l'ESP32. Le chemin TWAI + transceiver est plus simple que ESP32 + SPI + MCP2518FD + transceiver.
 
 Cette note fixe l'architecture de travail pour le reverse engineering CAN de l'Espace IV et du CSW-2000R.
 
@@ -243,6 +249,12 @@ Voir `docs/MCP2518FD_MODULE_JESSINIE.md` pour le brochage complet.
 
 ## Règle projet
 
-**La voie ESP32 + MCP2518FD + ATA6563 est désormais la référence pour les essais CAN.**
+**Cette voie n'est plus la référence des essais CAN.**
 
-Ne pas remplacer cette architecture par TWAI + transceiver simple sans nouvelle décision explicitement documentée.
+Référence active depuis le 2026-09-18 :
+
+```text
+ESP32 TWAI -> transceiver -> CAN
+```
+
+Le MCP2518FD reste disponible pour un futur troisième canal, du CAN-FD ou une interface spécifique Raspberry/SPI.
