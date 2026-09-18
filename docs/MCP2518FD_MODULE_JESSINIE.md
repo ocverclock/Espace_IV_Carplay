@@ -2,6 +2,8 @@
 
 Date d'archivage : `2026-09-18`
 
+> **Architecture secondaire depuis le 2026-09-18.** Ce module reste documenté et disponible, mais la voie CAN active est TWAI natif ESP32 + transceiver : `docs/CAN_GATEWAY_ESP32.md`.
+
 ## Statut de la source
 
 Documentation fournisseur transmise par l'utilisateur sous forme de captures d'écran du produit / tableau d'interface.
