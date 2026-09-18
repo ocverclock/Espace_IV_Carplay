@@ -204,115 +204,138 @@ Nombre de canaux :
 8 canaux : boutons + trois états de molette
 ```
 
-## 4. Banc ESP32 + module MCP2518FD
+## 4. Passerelle CAN active — ESP32 / TWAI
 
-Le premier module reçu servira au banc avec l'ESP32.
+L'architecture CAN principale ne dépend plus du module MCP2518FD pour le CAN classique.
 
-Câblage SPI proposé, ESP32 WROOM / VSPI classique :
+### Banc CSW minimal
 
-```text
-ESP32 GPIO5  CS   ─────► P1-1  nCS
-ESP32 GPIO19 MISO ◄───── P1-3  SDO
-ESP32 GPIO23 MOSI ─────► P1-5  SDI
-ESP32 GPIO18 SCK  ─────► P1-7  SCK
-ESP32 GPIO27 INT  ◄───── P1-9  INT
-ESP32 GND          ─────► P1-8 ou P1-11 GND
-```
-
-Brochage P1 complet du module Jessinie reçu :
+Pour terminer le reverse engineering du CSW, un ESP32 classique suffit :
 
 ```text
-1 nCS
-2 CLK
-3 SDO / MISO
-4 INT0
-5 SDI / MOSI
-6 INT1
-7 SCK
-8 GND
-9 INT
-10 3V3
-11 GND
-12 5V
+CSW CANH/CANL
+      │
+      ▼
+transceiver 3,3 V
+      │ TX/RX logique
+      ▼
+ESP32 TWAI0
 ```
 
-`P2` est le cavalier de configuration lié à l'alimentation / logique 5 V selon la notice.  
-`P3` commande la résistance de terminaison CAN intégrée : **ponté = 120 Ω activée ; ouvert = 120 Ω désactivée**.
+Le transceiver de prototype peut être un module `SN65HVD230` 3,3 V ou équivalent compatible. Pour le PCB automobile final, choisir un transceiver adapté à l'environnement automobile.
 
-Documentation spécifique du module : `docs/MCP2518FD_MODULE_JESSINIE.md`.
-
-Alimentation module : utiliser la configuration correspondant au niveau logique de l'ESP32 et **ne jamais relier simultanément deux entrées d'alimentation**.
-
-Côté CAN :
-
-```text
-module H ─────► CSW CN1-5 ou CN1-6
-module L ─────► CSW CN1-11 ou CN1-12
-module G ─────► CSW GND / CN1-8
-```
-
-Le module doit être configuré en :
+Configuration :
 
 ```text
 CAN classique 2.0B
 500 kbit/s
-mode Normal20B
+mode Normal sur le bus privé CSW
 ```
 
-Le mode normal est requis pour fournir l'ACK aux trames du CSW.
+Le mode normal est requis pour fournir l'ACK au CSW.
 
-## 5. Terminaison du bus privé
+### ESP32-C6 — candidat double CAN
+
+Si la carte C6 disponible est confirmée :
+
+```text
+CSW privé
+   │
+transceiver #1
+   │
+TWAI0
+   │
+ESP32-C6
+   │
+TWAI1
+   │
+transceiver #2
+   │
+CAN véhicule
+```
+
+Un transceiver est obligatoire par bus physique.
+
+Le ESP32-C6 possède deux contrôleurs TWAI matériels ; cette architecture permet donc deux réseaux CAN simultanés sans MCP2518FD externe.
+
+## 5. Liaison ESP32-C6 vers Raspberry Pi 4
+
+### UART direct — voie préférée
+
+```text
+ESP32-C6 TX  ─────► Raspberry Pi RX
+ESP32-C6 RX  ◄───── Raspberry Pi TX
+GND          ────── GND
+```
+
+La liaison est bidirectionnelle.
+
+Le C6 envoie vers le Pi :
+
+- canal CAN source ;
+- timestamp ;
+- ID ;
+- flags ;
+- DLC ;
+- données ;
+- événements d'erreur / bus-off.
+
+Le Pi peut envoyer vers le C6 :
+
+- requête d'émission sur CAN0 ou CAN1 ;
+- changement de filtre ;
+- changement de mode si autorisé ;
+- commandes de diagnostic de la passerelle.
+
+Le protocole série final doit être binaire, délimité et protégé contre les trames partielles/corrompues. Le format exact reste à définir après validation du prototype.
+
+### USB CDC — alternative
+
+Le C6 peut également apparaître comme port série USB sur Linux. Cette solution reste utile en développement mais n'est pas prioritaire si UART direct suffit, afin d'éviter l'ajout d'un hub USB.
+
+## 6. Terminaison CAN
+
+### Bus privé CSW
 
 Le CSW seul mesure environ `37 kΩ` entre CANH et CANL : il n'a pas de terminaison 120 Ω locale.
 
-Pour un bus privé à deux nœuds :
+Sur un banc à deux nœuds, la terminaison doit être cohérente avec la topologie physique.
+
+Valeur cible classique avec deux terminaisons :
 
 ```text
-[120 Ω]                     [120 Ω]
-CSW ───────── câble CAN ───── MCP2518FD
+120 Ω // 120 Ω ~= 60 Ω
 ```
 
-Résistance attendue hors tension aux bornes du bus complet : environ `60 Ω`.
+Toujours mesurer H ↔ L hors tension avant d'ajouter une résistance.
 
-Sur le banc actuel, deux `220 Ω` en parallèle donnent environ `110 Ω` et peuvent servir temporairement d'une des terminaisons.
+### Réseau véhicule
 
-Le module Jessinie possède une terminaison intégrée commutable par `P3`. Avant d'ajouter une résistance externe, mesurer H ↔ L hors tension et vérifier l'état de `P3` : ponté = 120 Ω activée ; ouvert = terminaison désactivée.
+Lorsqu'un transceiver est branché en dérivation sur un bus véhicule déjà correctement terminé, **ne pas activer une terminaison 120 Ω supplémentaire**.
 
-## 6. Câblage final Raspberry Pi 4 → MCP2518FD
+## 7. Module MCP2518FD Jessinie — matériel conservé / voie secondaire
 
-Pour la version finale, l'ESP32 n'est pas nécessaire. Le Pi peut piloter directement le MCP2518FD par SPI et l'exposer sous Linux via SocketCAN.
+Le module acheté reste documenté mais n'est plus la voie prioritaire.
 
-Proposition sur `SPI0` du Raspberry Pi 4 :
+Documentation :
+
+- `docs/MCP2518FD_MODULE_JESSINIE.md`
+- `docs/ESP32_MCP2518FD_CAN.md`
+- `firmware/esp32_mcp2518fd_bench/`
+
+Observation du 2026-09-18 :
 
 ```text
-Pi GPIO11 / pin 23 / SCLK ─────► MCP2518FD SCK
-Pi GPIO10 / pin 19 / MOSI ─────► MCP2518FD SDI
-Pi GPIO9  / pin 21 / MISO ◄───── MCP2518FD SDO
-Pi GPIO8  / pin 24 / CE0  ─────► MCP2518FD nCS
-Pi GPIO25 / pin 22        ◄───── MCP2518FD INT
-Pi GND                    ──────► module GND
+CSW TXD/RXD : trafic visible
+MCP module INT : aucune activité visible
+SPI ESP32 <-> MCP : non démontré
 ```
 
-L'oscillateur exact du module (`20 MHz` ou `40 MHz`) reste à relever sur le module physique avant écriture de la configuration Linux finale.
+Ne pas conclure que le module est défectueux sans test SPI isolé. Il reste disponible comme :
 
-## 7. Deuxième canal CAN véhicule
-
-Le bus privé CSW consomme un canal CAN dédié.
-
-Avec deux MCP2518FD seulement :
-
-```text
-CAN0 = bus privé CSW
-CAN1 = CAN véhicule principal
-```
-
-Conséquence importante : si le projet doit finalement écouter **deux réseaux véhicule distincts en plus du CSW**, il faudra :
-
-- soit ajouter un troisième canal MCP2518FD ;
-- soit prévoir un troisième footprint optionnel sur le PCB ;
-- soit abandonner l'écoute simultanée d'un des réseaux secondaires.
-
-Ce point reste à décider avant routage du PCB final.
+- contrôleur supplémentaire si un troisième CAN est requis ;
+- interface CAN-FD si un futur besoin apparaît ;
+- solution de secours pour le Raspberry.
 
 ## 8. Ancien autoradio conservé comme amplificateur
 
