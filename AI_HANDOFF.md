@@ -1,6 +1,29 @@
 # AI / New Chat Handoff
 
-## Checkpoint actif — 2026-09-10 : LIVI installé et démarré
+## Checkpoint actif — 2026-09-18 : CAN/TWAI restructuré
+
+À ne pas perdre :
+
+- CSW-2000R : CAN classique mesuré à `500 kbit/s` ;
+- baseline : `ID 0x681 / DLC 8 / F0 0A 0A 01 FF FF FF FF` ;
+- CANH = CN1-5/6 ; CANL = CN1-11/12 ;
+- CSW seul : `~37 kΩ` H↔L, donc pas de terminaison 120 Ω locale ;
+- le module Jessinie MCP2518FD + ATA6563 est documenté mais sa communication SPI n'a pas été démontrée ; aucune activité INT observée pendant le trafic CSW ;
+- ne pas conclure qu'il est défectueux sans test SPI isolé ;
+- **voie CAN active : TWAI natif ESP32 + un transceiver par bus physique** ;
+- ESP32 classique = 1 bus ;
+- ESP32-C6 = 2 contrôleurs TWAI matériels, candidat pour bus privé CSW + CAN véhicule ;
+- C6 ↔ Raspberry : UART bidirectionnel direct prioritaire ; USB CDC alternatif ;
+- OBD 6/14 et 12/13 doivent être mesurés séparément avant de figer le nombre final de réseaux CAN.
+
+Lire obligatoirement pour tout travail CAN :
+
+1. `docs/CAN_GATEWAY_ESP32.md`
+2. `docs/CAN_RESEARCH.md`
+3. `docs/DECISIONS.md` D018 à D022
+4. `docs/TEST_LOG.md`
+
+### Checkpoint précédent — 2026-09-10 : LIVI installé et démarré
 
 - Banc Raspberry Pi 4 sur microSD, image avec bureau préparée avec Raspberry Pi Imager 1.7.2.
 - SSH fonctionnel : `ssh pi@raspberry-carplay.local`. Aucun écran physique disponible pour le moment.
@@ -140,7 +163,9 @@ Adresse CP3.0 attendue d’après WACResearch : `0x10`, à confirmer sur notre p
 - MFi direct `MFI343S00177-L` cible principale ;
 - Carlinkit pas cible finale ;
 - RP2040 pour commandes physiques ;
-- double CAN matériel futur ;
+- passerelle CAN/TWAI : ESP32-C6 candidat 2 bus ;
+- un transceiver indépendant par bus CAN physique ;
+- MCP2518FD conservé comme secours / extension, plus comme voie principale ;
 - ELS27 reportée ;
 - caméra de recul obligatoire et indépendante du téléphone ;
 - PCB final interdit avant mesures des commandes et validation des sous-systèmes critiques.
@@ -148,3 +173,15 @@ Adresse CP3.0 attendue d’après WACResearch : `0x10`, à confirmer sur notre p
 ## Règle de documentation
 
 Chaque résultat réel doit être ajouté immédiatement dans `docs/TEST_LOG.md`, puis répercuté dans `PROJECT_STATE.md` et/ou `docs/DECISIONS.md` s’il change une décision ou une hypothèse.
+
+
+## Règles CAN à ne pas perdre
+
+- un bus CAN physique = un contrôleur TWAI + un transceiver ;
+- plusieurs calculateurs sur un même bus ne nécessitent pas plusieurs canaux ;
+- ne jamais mettre deux bus indépendants en parallèle ;
+- bus privé CSW : mode normal autorisé pour ACK ;
+- réseau véhicule inconnu : listen-only en premier ;
+- UART C6 ↔ Pi est bidirectionnel : réception et émission contrôlée possibles ;
+- ne pas ajouter de hub USB tant qu'un seul C6 et UART direct suffisent ;
+- ne pas acheter un troisième CAN tant que la topologie OBD n'est pas mesurée.
