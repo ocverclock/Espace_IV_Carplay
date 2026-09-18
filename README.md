@@ -15,7 +15,7 @@ L’objectif n’est pas de poser un autoradio Android générique. Le projet vi
 - réutilisation complète de la commande au volant `7701049643`, y compris sa molette ;
 - appels mains libres ;
 - caméra de recul avec affichage automatique et fonctionnement indépendant du téléphone ;
-- interface CAN double canal pour télémétrie véhicule ;
+- passerelle CAN/TWAI multi-bus via ESP32, avec ESP32-C6 candidat 2 canaux ;
 - K-Line optionnelle ;
 - PCB final compact dédié à l’Espace IV ;
 - conservation de la prise OBD pour le diagnostic normal.
@@ -50,28 +50,42 @@ Le fichier [AI_HANDOFF.md](AI_HANDOFF.md) contient les règles de reprise pour u
                            HDMI    Audio
                              │      │
                          écran 7"   └──► audio Renault
+                             │
+                             │ UART bidirectionnel
+                             ▼
+                       ┌───────────────┐
+                       │ ESP32-C6      │
+                       │ CAN Gateway   │
+                       ├──────┬────────┤
+                       │TWAI0 │ TWAI1  │
+                       └──┬───┴───┬────┘
+                          │       │
+                    transceiver transceiver
+                          │       │
+                  CAN privé CSW  CAN véhicule
 
-                         GPIO / USB / SPI
-                                  │
-        ┌─────────────────────────▼────────────────────────┐
-        │            Espace IV Interface Board            │
-        │                                                  │
-        │ RP2040                                           │
-        │  ├─ commande au volant                           │
-        │  ├─ CSW-2000R                                    │
-        │  ├─ marche arrière                               │
-        │  └─ ACC / illumination                           │
-        │                                                  │
-        │ 3.3 V → load-switch → MFI343S00177-L             │
-        │         ▲                                        │
-        │         └── GPIO21 EN                            │
-        │ GPIO19 SDA / GPIO26 SCL                          │
-        │                                                  │
-        │ MCP2518FD #1 + transceiver → CAN véhicule        │
-        │ MCP2518FD #2 + transceiver → CAN secondaire      │
-        │ L9637D optionnel → K-Line                        │
-        └──────────────────────────────────────────────────┘
+Commande au volant
+      │
+      ▼
+    RP2040
+      ├── USB HID → Raspberry Pi
+      └── proxy contacts OEM VOL+/VOL-
+
+MFi :
+Pi 3.3 V → load-switch → MFI343S00177-L
+GPIO21 → EN
+GPIO19 SDA / GPIO26 SCL
 ```
+
+Principes CAN :
+
+- un bus physique = un contrôleur TWAI + un transceiver ;
+- le CSW reste isolé sur un bus CAN privé à 500 kbit/s ;
+- l'ESP32-C6 est candidat pour deux bus CAN classiques simultanés ;
+- UART direct vers le Pi est privilégié pour éviter un hub USB ;
+- le MCP2518FD acheté est conservé comme solution secondaire / extension.
+
+Documentation : [docs/CAN_GATEWAY_ESP32.md](docs/CAN_GATEWAY_ESP32.md) et [docs/CAN_RESEARCH.md](docs/CAN_RESEARCH.md).
 
 ## CarPlay / MFi — règle actuelle
 
@@ -147,15 +161,18 @@ Ces pièces permettent d’ouvrir, mesurer et modifier sur établi sans risquer 
 - [x] écran 7" non tactile retenu comme format ;
 - [x] caméra de recul intégrée au cahier des charges ;
 - [x] RP2040 retenu pour les commandes physiques ;
-- [x] double CAN matériel retenu pour le PCB futur ;
+- [x] architecture CAN révisée : TWAI natif ESP32 prioritaire ;
+- [x] ESP32-C6 identifié comme candidat 2 bus CAN ;
+- [x] liaison UART C6 ↔ Raspberry retenue comme voie simple ;
 - [ ] installation LIVI sur Pi 4 Trixie ;
 - [ ] prototype MFi et détection `0x10` ;
 - [ ] validation CarPlay ;
-- [ ] reverse engineering commande au volant ;
-- [ ] reverse engineering CSW-2000R ;
+- [x] reverse engineering commande au volant sur banc ;
+- [ ] terminer reverse engineering CSW-2000R avec ACK CAN et cartographie des commandes ;
 - [ ] choix exact écran 7" ;
 - [ ] prototype caméra ;
 - [ ] PCB V1 ;
+- [ ] mesurer topologie OBD 6/14 et 12/13 ;
 - [ ] décodage CAN véhicule.
 
 ## Documentation
@@ -188,6 +205,7 @@ Ces pièces permettent d’ouvrir, mesurer et modifier sur établi sans risquer 
 
 - [docs/REVERSE_CAMERA.md](docs/REVERSE_CAMERA.md)
 - [docs/CAN_RESEARCH.md](docs/CAN_RESEARCH.md)
+- [docs/CAN_GATEWAY_ESP32.md](docs/CAN_GATEWAY_ESP32.md)
 - [docs/REPRODUCTION_GUIDE.md](docs/REPRODUCTION_GUIDE.md)
 
 ## Statuts utilisés
