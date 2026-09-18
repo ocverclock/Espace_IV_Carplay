@@ -1,5 +1,7 @@
 # ESP32 + MCP2518FD — décodeur de banc CSW-2000R
 
+> **LEGACY / dépriorisé depuis le 2026-09-18.** La cible active est `firmware/esp32_can_gateway/` avec TWAI natif + transceiver. Ce dossier reste conservé pour documenter le matériel MCP2518FD déjà acheté et les essais effectués.
+
 Objectif : utiliser l'ESP32 comme hôte SPI du module MCP2518FD/ATA6563 pour identifier les commandes émises par le Renault CSW-2000R.
 
 ## Données déjà confirmées
